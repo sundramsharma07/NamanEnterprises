@@ -1,0 +1,6 @@
+.env
+database/store.db
+database/store.db-shm
+database/store.db-wal
+backups
+node_modules

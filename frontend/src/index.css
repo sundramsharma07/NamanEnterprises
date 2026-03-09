@@ -1,0 +1,23 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  min-height: 100%;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background-color: #fdfafa;
+  color: rgb(14, 14, 14);
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
