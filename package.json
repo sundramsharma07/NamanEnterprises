@@ -1,0 +1,25 @@
+{
+  "name": "store-system",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm run dev\"",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sundramsharma07/NamanEnterprises.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/sundramsharma07/NamanEnterprises/issues"
+  },
+  "homepage": "https://github.com/sundramsharma07/NamanEnterprises#readme",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
