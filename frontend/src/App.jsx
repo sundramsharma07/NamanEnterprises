@@ -15,6 +15,7 @@ import {
 import { useEffect } from "react";
 
 import Navbar from "./components/Navbar";
+import GreetingPage from "./pages/GreetingPage";
 import Dashboard from "./pages/Dashboard";
 import Customers from "./pages/Customers";
 import Products from "./pages/Products";
@@ -85,7 +86,8 @@ function Layout() {
 
   const hideNavbar =
     location.pathname.startsWith("/receipt") ||
-    location.pathname.startsWith("/login");
+    location.pathname.startsWith("/login") ||
+    location.pathname.startsWith("/greeting");
 
   return (
     <>
@@ -103,12 +105,27 @@ function Layout() {
 
         <Route
           path="/"
+          element={<Navigate to="/greeting" replace />}
+        />
+
+        <Route
+          path="/greeting"
+          element={
+            <ProtectedRoute>
+              <GreetingPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/dashboard"
           element={
             <ProtectedRoute>
               <Dashboard />
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/customers"
           element={
@@ -173,6 +190,8 @@ function Layout() {
             </ProtectedRoute>
           }
         />
+
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>
   );
