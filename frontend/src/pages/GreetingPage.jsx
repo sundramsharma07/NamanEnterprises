@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import greetingVideo from "../assets/greetings.mp4";
+import greetingVideo from "../assets/greetings1.mp4";
 
 function GreetingPage() {
   const navigate = useNavigate();
