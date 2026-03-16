@@ -25,53 +25,105 @@ function Orders() {
     fetchOrders();
   }, []);
 
-  // Filter orders based on search and filters
-  const filteredOrders = orders.filter(order => {
-    // Search filter
-    const matchesSearch = 
+  const filteredOrders = orders.filter((order) => {
+    const matchesSearch =
       order.order_id?.toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.id?.toString().includes(searchTerm);
-    
-    // Status filter
+
     const remaining = Number(order.remaining_amount || 0);
     let matchesStatus = true;
+
     if (statusFilter === "paid") {
       matchesStatus = remaining === 0;
     } else if (statusFilter === "due") {
       matchesStatus = remaining > 0;
     } else if (statusFilter === "partial") {
-      matchesStatus = remaining > 0 && remaining < Number(order.total_amount || 0);
+      matchesStatus =
+        remaining > 0 && remaining < Number(order.total_amount || 0);
     }
-    
-    return matchesSearch && matchesStatus;
+
+    let matchesDate = true;
+    const orderDate = order.created_at ? new Date(order.created_at) : null;
+    const now = new Date();
+
+    if (orderDate && dateFilter !== "all") {
+      const startOfToday = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate()
+      );
+
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - now.getDay());
+      startOfWeek.setHours(0, 0, 0, 0);
+
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+      if (dateFilter === "today") {
+        matchesDate = orderDate >= startOfToday;
+      } else if (dateFilter === "week") {
+        matchesDate = orderDate >= startOfWeek;
+      } else if (dateFilter === "month") {
+        matchesDate = orderDate >= startOfMonth;
+      }
+    }
+
+    return matchesSearch && matchesStatus && matchesDate;
   });
 
-  // Calculate statistics
   const totalOrders = orders.length;
-  const totalRevenue = orders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
-  const totalPaid = orders.reduce((sum, o) => sum + Number(o.paid_amount || 0), 0);
-  const totalDue = orders.reduce((sum, o) => sum + Number(o.remaining_amount || 0), 0);
-  const paidOrders = orders.filter(o => Number(o.remaining_amount || 0) === 0).length;
-  const dueOrders = orders.filter(o => Number(o.remaining_amount || 0) > 0).length;
+  const totalRevenue = orders.reduce(
+    (sum, o) => sum + Number(o.total_amount || 0),
+    0
+  );
+  const totalPaid = orders.reduce(
+    (sum, o) => sum + Number(o.paid_amount || 0),
+    0
+  );
+  const totalDue = orders.reduce(
+    (sum, o) => sum + Number(o.remaining_amount || 0),
+    0
+  );
+  const paidOrders = orders.filter(
+    (o) => Number(o.remaining_amount || 0) === 0
+  ).length;
+  const dueOrders = orders.filter(
+    (o) => Number(o.remaining_amount || 0) > 0
+  ).length;
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     }).format(amount || 0);
   };
 
+  const formatDate = (dateValue) => {
+    if (!dateValue) return "-";
+
+    const date = new Date(dateValue);
+    if (Number.isNaN(date.getTime())) return "-";
+
+    return date.toLocaleString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+  };
+
   const getStatusBadge = (order) => {
     const remaining = Number(order.remaining_amount || 0);
     if (remaining === 0) {
-      return { text: 'Paid', color: '#16a34a', bg: '#22c55e20' };
+      return { text: "Paid", color: "#16a34a", bg: "#22c55e20" };
     } else if (remaining === Number(order.total_amount || 0)) {
-      return { text: 'Unpaid', color: '#dc2626', bg: '#ef444420' };
+      return { text: "Unpaid", color: "#dc2626", bg: "#ef444420" };
     } else {
-      return { text: 'Partial', color: '#b45309', bg: '#f59e0b20' };
+      return { text: "Partial", color: "#b45309", bg: "#f59e0b20" };
     }
   };
 
@@ -101,7 +153,6 @@ function Orders() {
         }
       `}</style>
 
-      {/* Header Section */}
       <div style={styles.header}>
         <div>
           <h1 style={styles.title}>Orders</h1>
@@ -111,7 +162,6 @@ function Orders() {
         </div>
       </div>
 
-      {/* Stats Cards */}
       <div style={styles.statsGrid}>
         <div style={styles.statCard}>
           <div style={styles.statIcon}>📦</div>
@@ -120,7 +170,7 @@ function Orders() {
             <div style={styles.statValue}>{totalOrders}</div>
           </div>
         </div>
-        
+
         <div style={styles.statCard}>
           <div style={styles.statIcon}>💰</div>
           <div>
@@ -128,27 +178,30 @@ function Orders() {
             <div style={styles.statValue}>{formatCurrency(totalRevenue)}</div>
           </div>
         </div>
-        
+
         <div style={styles.statCard}>
           <div style={styles.statIcon}>✅</div>
           <div>
             <div style={styles.statLabel}>Paid Orders</div>
             <div style={styles.statValue}>{paidOrders}</div>
-            <div style={styles.statSubtext}>{formatCurrency(totalPaid)} collected</div>
+            <div style={styles.statSubtext}>
+              {formatCurrency(totalPaid)} collected
+            </div>
           </div>
         </div>
-        
+
         <div style={styles.statCard}>
           <div style={styles.statIcon}>⏳</div>
           <div>
             <div style={styles.statLabel}>Due Orders</div>
             <div style={styles.statValue}>{dueOrders}</div>
-            <div style={styles.statSubtext}>{formatCurrency(totalDue)} pending</div>
+            <div style={styles.statSubtext}>
+              {formatCurrency(totalDue)} pending
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Search and Filter Bar */}
       <div style={styles.filterContainer}>
         <div style={styles.searchWrapper}>
           <span style={styles.searchIcon}>🔍</span>
@@ -192,13 +245,13 @@ function Orders() {
         </select>
       </div>
 
-      {/* Orders Table */}
       <div style={styles.tableContainer}>
         <table style={styles.table}>
           <thead style={styles.tableHead}>
             <tr>
               <th style={styles.th}>Order ID</th>
               <th style={styles.th}>Customer</th>
+              <th style={styles.th}>Created</th>
               <th style={styles.th}>Total Amount</th>
               <th style={styles.th}>Paid Amount</th>
               <th style={styles.th}>Remaining</th>
@@ -217,37 +270,60 @@ function Orders() {
                         <span style={styles.orderId}>#{order.order_id}</span>
                       </Link>
                     </td>
+
                     <td style={styles.td}>
                       <div style={styles.customerInfo}>
                         <div style={styles.customerAvatar}>
-                          {order.customer_name?.charAt(0).toUpperCase()}
+                          {order.customer_name?.charAt(0).toUpperCase() || "?"}
                         </div>
-                        <span style={styles.customerName}>{order.customer_name}</span>
+                        <span style={styles.customerName}>
+                          {order.customer_name || "Unknown Customer"}
+                        </span>
                       </div>
                     </td>
+
                     <td style={styles.td}>
-                      <span style={styles.amount}>{formatCurrency(order.total_amount)}</span>
+                      <span style={styles.dateText}>{formatDate(order.created_at)}</span>
                     </td>
+
                     <td style={styles.td}>
-                      <span style={styles.paidAmount}>{formatCurrency(order.paid_amount)}</span>
+                      <span style={styles.amount}>
+                        {formatCurrency(order.total_amount)}
+                      </span>
                     </td>
+
                     <td style={styles.td}>
-                      <span style={{
-                        ...styles.remainingAmount,
-                        color: Number(order.remaining_amount) > 0 ? '#dc2626' : '#16a34a'
-                      }}>
+                      <span style={styles.paidAmount}>
+                        {formatCurrency(order.paid_amount)}
+                      </span>
+                    </td>
+
+                    <td style={styles.td}>
+                      <span
+                        style={{
+                          ...styles.remainingAmount,
+                          color:
+                            Number(order.remaining_amount) > 0
+                              ? "#dc2626"
+                              : "#16a34a"
+                        }}
+                      >
                         {formatCurrency(order.remaining_amount)}
                       </span>
                     </td>
+
                     <td style={styles.td}>
-                      <span style={{
-                        ...styles.statusBadge,
-                        backgroundColor: status.bg,
-                        color: status.color
-                      }}>
+                      <span
+                        style={{
+                          ...styles.statusBadge,
+                          backgroundColor: status.bg,
+                          color: status.color
+                        }}
+                      >
                         {status.text}
                       </span>
                     </td>
+
                     <td style={styles.td}>
                       <Link to={`/orders/${order.order_id}`} style={styles.viewButton}>
                         View Details
@@ -259,11 +335,11 @@ function Orders() {
               })
             ) : (
               <tr>
-                <td colSpan="7" style={styles.noData}>
-                  {searchTerm || statusFilter !== 'all' ? (
+                <td colSpan="8" style={styles.noData}>
+                  {searchTerm || statusFilter !== "all" || dateFilter !== "all" ? (
                     <div>
                       <p style={styles.noDataText}>No orders match your filters</p>
-                      <button 
+                      <button
                         onClick={() => {
                           setSearchTerm("");
                           setStatusFilter("all");
@@ -286,12 +362,11 @@ function Orders() {
         </table>
       </div>
 
-      {/* Footer with Summary */}
       {filteredOrders.length > 0 && (
         <div style={styles.footer}>
           <div style={styles.resultsInfo}>
             Showing {filteredOrders.length} of {totalOrders} orders
-            {(searchTerm || statusFilter !== 'all' || dateFilter !== 'all') && (
+            {(searchTerm || statusFilter !== "all" || dateFilter !== "all") && (
               <button
                 onClick={() => {
                   setSearchTerm("");
@@ -304,22 +379,39 @@ function Orders() {
               </button>
             )}
           </div>
-          
+
           <div style={styles.summaryStats}>
             <div style={styles.summaryItem}>
               <span>Page Total:</span>
-              <strong>{formatCurrency(filteredOrders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0))}</strong>
+              <strong>
+                {formatCurrency(
+                  filteredOrders.reduce(
+                    (sum, o) => sum + Number(o.total_amount || 0),
+                    0
+                  )
+                )}
+              </strong>
             </div>
             <div style={styles.summaryItem}>
               <span>Page Paid:</span>
-              <strong style={{color: '#16a34a'}}>
-                {formatCurrency(filteredOrders.reduce((sum, o) => sum + Number(o.paid_amount || 0), 0))}
+              <strong style={{ color: "#16a34a" }}>
+                {formatCurrency(
+                  filteredOrders.reduce(
+                    (sum, o) => sum + Number(o.paid_amount || 0),
+                    0
+                  )
+                )}
               </strong>
             </div>
             <div style={styles.summaryItem}>
               <span>Page Due:</span>
-              <strong style={{color: '#dc2626'}}>
-                {formatCurrency(filteredOrders.reduce((sum, o) => sum + Number(o.remaining_amount || 0), 0))}
+              <strong style={{ color: "#dc2626" }}>
+                {formatCurrency(
+                  filteredOrders.reduce(
+                    (sum, o) => sum + Number(o.remaining_amount || 0),
+                    0
+                  )
+                )}
               </strong>
             </div>
           </div>
@@ -532,6 +624,11 @@ const styles = {
   },
   customerName: {
     fontWeight: "500"
+  },
+  dateText: {
+    color: "#475569",
+    fontSize: "13px",
+    whiteSpace: "nowrap"
   },
   amount: {
     fontWeight: "600",

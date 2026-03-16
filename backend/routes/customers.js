@@ -20,11 +20,11 @@ router.get("/", (req, res) => {
   });
 });
 
-// GET CUSTOMER BY ID
-router.get("/:id", (req, res) => {
-  const sql = "SELECT * FROM customers WHERE id = ?";
+// SEARCH CUSTOMER BY PHONE
+router.get("/phone/:phone", (req, res) => {
+  const sql = "SELECT * FROM customers WHERE phone = ?";
 
-  db.get(sql, [req.params.id], (err, row) => {
+  db.get(sql, [req.params.phone], (err, row) => {
     if (err) {
       return res.status(500).json({
         success: false,
@@ -43,11 +43,11 @@ router.get("/:id", (req, res) => {
   });
 });
 
-// SEARCH CUSTOMER BY PHONE
-router.get("/phone/:phone", (req, res) => {
-  const sql = "SELECT * FROM customers WHERE phone = ?";
+// GET CUSTOMER BY ID
+router.get("/:id", (req, res) => {
+  const sql = "SELECT * FROM customers WHERE id = ?";
 
-  db.get(sql, [req.params.phone], (err, row) => {
+  db.get(sql, [req.params.id], (err, row) => {
     if (err) {
       return res.status(500).json({
         success: false,
@@ -123,30 +123,228 @@ router.put("/:id", (req, res) => {
   });
 });
 
-// DELETE CUSTOMER
+// DELETE CUSTOMER WITH STOCK RESTORE
 router.delete("/:id", (req, res) => {
-  const sql = "DELETE FROM customers WHERE id = ?";
+  const customerId = req.params.id;
 
-  db.run(sql, [req.params.id], function (err) {
-    if (err) {
-      return res.status(500).json({
-        success: false,
-        message: "Delete failed"
-      });
+  db.get(
+    "SELECT * FROM customers WHERE id = ?",
+    [customerId],
+    (customerErr, customer) => {
+      if (customerErr) {
+        return res.status(500).json({
+          success: false,
+          message: "Database error",
+          error: customerErr.message
+        });
+      }
+
+      if (!customer) {
+        return res.status(404).json({
+          success: false,
+          message: "Customer not found"
+        });
+      }
+
+      db.all(
+        "SELECT order_id FROM orders WHERE customer_id = ?",
+        [customerId],
+        (ordersErr, orders) => {
+          if (ordersErr) {
+            return res.status(500).json({
+              success: false,
+              message: "Failed to fetch customer orders",
+              error: ordersErr.message
+            });
+          }
+
+          db.serialize(() => {
+            let responseSent = false;
+
+            const rollbackWithError = (message, errObj = null, statusCode = 500) => {
+              db.run("ROLLBACK", () => {
+                if (!responseSent) {
+                  responseSent = true;
+                  return res.status(statusCode).json({
+                    success: false,
+                    message,
+                    error: errObj ? errObj.message : undefined
+                  });
+                }
+              });
+            };
+
+            db.run("BEGIN TRANSACTION", (beginErr) => {
+              if (beginErr) {
+                return res.status(500).json({
+                  success: false,
+                  message: "Failed to start transaction",
+                  error: beginErr.message
+                });
+              }
+
+              const restoreStockForOrders = (orderIndex) => {
+                if (orderIndex >= orders.length) {
+                  return deleteCustomerData();
+                }
+
+                const orderId = orders[orderIndex].order_id;
+
+                db.all(
+                  "SELECT * FROM order_items WHERE order_id = ?",
+                  [orderId],
+                  (itemsErr, items) => {
+                    if (itemsErr) {
+                      return rollbackWithError("Failed to fetch order items", itemsErr);
+                    }
+
+                    const processItems = (itemIndex) => {
+                      if (itemIndex >= items.length) {
+                        return restoreStockForOrders(orderIndex + 1);
+                      }
+
+                      const item = items[itemIndex];
+
+                      db.get(
+                        "SELECT stock, name FROM products WHERE id = ?",
+                        [item.product_id],
+                        (productErr, product) => {
+                          if (productErr) {
+                            return rollbackWithError("Failed to fetch product stock", productErr);
+                          }
+
+                          if (!product) {
+                            return rollbackWithError(
+                              `Product not found for stock restore: ${item.product_id}`,
+                              null,
+                              400
+                            );
+                          }
+
+                          const oldStock = Number(product.stock || 0);
+                          const restoreQty = Number(item.quantity || 0);
+                          const newStock = oldStock + restoreQty;
+
+                          db.run(
+                            `UPDATE products SET stock = ? WHERE id = ?`,
+                            [newStock, item.product_id],
+                            function (updateErr) {
+                              if (updateErr) {
+                                return rollbackWithError("Failed to restore stock", updateErr);
+                              }
+
+                              db.run(
+                                `INSERT INTO stock_movements
+                                 (product_id, movement_type, quantity, old_stock, new_stock, note, ref_order_id)
+                                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                                [
+                                  item.product_id,
+                                  "RETURN",
+                                  restoreQty,
+                                  oldStock,
+                                  newStock,
+                                  "Stock restored due to customer deletion",
+                                  orderId
+                                ],
+                                (movementErr) => {
+                                  if (movementErr) {
+                                    return rollbackWithError(
+                                      "Failed to record stock movement",
+                                      movementErr
+                                    );
+                                  }
+
+                                  processItems(itemIndex + 1);
+                                }
+                              );
+                            }
+                          );
+                        }
+                      );
+                    };
+
+                    processItems(0);
+                  }
+                );
+              };
+
+              const deleteCustomerData = () => {
+                db.run(
+                  "DELETE FROM payments WHERE order_id IN (SELECT order_id FROM orders WHERE customer_id = ?)",
+                  [customerId],
+                  (paymentsErr) => {
+                    if (paymentsErr) {
+                      return rollbackWithError("Failed to delete payments", paymentsErr);
+                    }
+
+                    db.run(
+                      "DELETE FROM order_items WHERE order_id IN (SELECT order_id FROM orders WHERE customer_id = ?)",
+                      [customerId],
+                      (itemsDeleteErr) => {
+                        if (itemsDeleteErr) {
+                          return rollbackWithError("Failed to delete order items", itemsDeleteErr);
+                        }
+
+                        db.run(
+                          "DELETE FROM orders WHERE customer_id = ?",
+                          [customerId],
+                          (ordersDeleteErr) => {
+                            if (ordersDeleteErr) {
+                              return rollbackWithError("Failed to delete orders", ordersDeleteErr);
+                            }
+
+                            db.run(
+                              "DELETE FROM customers WHERE id = ?",
+                              [customerId],
+                              function (customerDeleteErr) {
+                                if (customerDeleteErr) {
+                                  return rollbackWithError(
+                                    "Failed to delete customer",
+                                    customerDeleteErr
+                                  );
+                                }
+
+                                if (this.changes === 0) {
+                                  return rollbackWithError(
+                                    "Customer not found during delete",
+                                    null,
+                                    404
+                                  );
+                                }
+
+                                db.run("COMMIT", (commitErr) => {
+                                  if (commitErr) {
+                                    return rollbackWithError(
+                                      "Failed to commit customer deletion",
+                                      commitErr
+                                    );
+                                  }
+
+                                  if (!responseSent) {
+                                    responseSent = true;
+                                    return res.json({
+                                      success: true,
+                                      message: "Customer deleted and stock restored successfully"
+                                    });
+                                  }
+                                });
+                              }
+                            );
+                          }
+                        );
+                      }
+                    );
+                  }
+                );
+              };
+
+              restoreStockForOrders(0);
+            });
+          });
+        }
+      );
     }
-
-    if (this.changes === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "Customer not found"
-      });
-    }
-
-    res.json({
-      success: true,
-      message: "Customer deleted"
-    });
-  });
+  );
 });
 
 module.exports = router;

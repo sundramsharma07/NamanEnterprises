@@ -31,9 +31,67 @@ function CreateOrder() {
     setItems([...items, { product_id: "", quantity: 1 }]);
   };
 
+  const getProductById = (productId) => {
+    return products.find((p) => String(p.id) === String(productId));
+  };
+
+  const getReservedQuantityForProduct = (productId, currentIndex) => {
+    return items.reduce((sum, item, index) => {
+      if (index === currentIndex) return sum;
+      if (String(item.product_id) === String(productId)) {
+        return sum + Number(item.quantity || 0);
+      }
+      return sum;
+    }, 0);
+  };
+
+  const getAvailableStockForRow = (productId, currentIndex) => {
+    const product = getProductById(productId);
+    if (!product) return 0;
+
+    const stock = Number(product.stock || 0);
+    const reserved = getReservedQuantityForProduct(productId, currentIndex);
+    return Math.max(stock - reserved, 0);
+  };
+
   const updateItem = (index, field, value) => {
     const updated = [...items];
-    updated[index][field] = field === "quantity" ? Number(value) : value;
+
+    if (field === "product_id") {
+      updated[index][field] = value;
+      const available = getAvailableStockForRow(value, index);
+
+      if (!updated[index].quantity || Number(updated[index].quantity) <= 0) {
+        updated[index].quantity = 1;
+      }
+
+      if (available > 0 && Number(updated[index].quantity) > available) {
+        updated[index].quantity = available;
+      }
+
+      if (available === 0) {
+        updated[index].quantity = 1;
+      }
+    } else if (field === "quantity") {
+      const productId = updated[index].product_id;
+      const available = getAvailableStockForRow(productId, index);
+      let qty = Number(value);
+
+      if (!value || Number.isNaN(qty)) {
+        qty = 1;
+      }
+
+      if (qty < 1) qty = 1;
+
+      if (productId && available > 0 && qty > available) {
+        qty = available;
+      }
+
+      updated[index][field] = qty;
+    } else {
+      updated[index][field] = value;
+    }
+
     setItems(updated);
   };
 
@@ -52,12 +110,19 @@ function CreateOrder() {
 
   const remainingAmount = totalAmount - Number(paidAmount || 0);
 
-  // Filter products based on search
-  const filteredProducts = products.filter(product => 
+  const filteredProducts = products.filter((product) =>
     product.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     product.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     product.variant?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const lowStockCount = products.filter(
+    (p) => Number(p.stock || 0) <= Number(p.min_stock || 0)
+  ).length;
+
+  const outOfStockCount = products.filter(
+    (p) => Number(p.stock || 0) <= 0
+  ).length;
 
   const submitOrder = async () => {
     const cleanedItems = items
@@ -87,6 +152,34 @@ function CreateOrder() {
       return;
     }
 
+    // combine duplicate products and validate stock once more before submit
+    const groupedItemsMap = {};
+
+    for (const item of cleanedItems) {
+      if (!groupedItemsMap[item.product_id]) {
+        groupedItemsMap[item.product_id] = 0;
+      }
+      groupedItemsMap[item.product_id] += Number(item.quantity);
+    }
+
+    for (const [productId, quantity] of Object.entries(groupedItemsMap)) {
+      const product = getProductById(productId);
+
+      if (!product) {
+        alert("One of the selected products was not found");
+        return;
+      }
+
+      const availableStock = Number(product.stock || 0);
+
+      if (quantity > availableStock) {
+        alert(
+          `Insufficient stock for ${product.name}. Available: ${availableStock}, Requested: ${quantity}`
+        );
+        return;
+      }
+    }
+
     const payload = {
       customer_id: Number(customerId),
       paid_amount: Number(paidAmount || 0),
@@ -108,15 +201,26 @@ function CreateOrder() {
       setItems([{ product_id: "", quantity: 1 }]);
       setSelectedCustomer(null);
       setSearchTerm("");
+
+      // refresh product stock after successful order
+      const productRes = await api.get("/products");
+      setProducts(Array.isArray(productRes.data) ? productRes.data : []);
     } catch (error) {
       console.error("Failed to create order:", error);
       console.log("Backend response:", error.response?.data);
 
       alert(
-        error.response?.data?.message ||
-        error.response?.data?.error ||
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
         "Failed to create order"
       );
+
+      try {
+        const productRes = await api.get("/products");
+        setProducts(Array.isArray(productRes.data) ? productRes.data : []);
+      } catch (refreshError) {
+        console.error("Failed to refresh products after order error:", refreshError);
+      }
     } finally {
       setLoading(false);
     }
@@ -144,7 +248,6 @@ function CreateOrder() {
         }
       `}</style>
 
-      {/* Header */}
       <div style={styles.header}>
         <div>
           <h1 style={styles.title}>Create New Order</h1>
@@ -154,18 +257,42 @@ function CreateOrder() {
         </div>
       </div>
 
-      {/* Main Content */}
+      <div style={styles.topStats}>
+        <div style={styles.topStatCard}>
+          <div style={styles.topStatIcon}>📦</div>
+          <div>
+            <div style={styles.topStatLabel}>Products Available</div>
+            <div style={styles.topStatValue}>{products.length}</div>
+          </div>
+        </div>
+
+        <div style={styles.topStatCard}>
+          <div style={styles.topStatIcon}>⚠️</div>
+          <div>
+            <div style={styles.topStatLabel}>Low Stock</div>
+            <div style={styles.topStatValue}>{lowStockCount}</div>
+          </div>
+        </div>
+
+        <div style={styles.topStatCard}>
+          <div style={styles.topStatIcon}>🚫</div>
+          <div>
+            <div style={styles.topStatLabel}>Out of Stock</div>
+            <div style={styles.topStatValue}>{outOfStockCount}</div>
+          </div>
+        </div>
+      </div>
+
       <div style={styles.contentGrid}>
-        {/* Left Column - Customer Selection */}
         <div style={styles.leftColumn}>
           <div style={styles.card}>
             <h3 style={styles.cardTitle}>Select Customer</h3>
-            
-            <select 
-              value={customerId} 
+
+            <select
+              value={customerId}
               onChange={(e) => {
                 setCustomerId(e.target.value);
-                const customer = customers.find(c => String(c.id) === e.target.value);
+                const customer = customers.find((c) => String(c.id) === e.target.value);
                 setSelectedCustomer(customer);
               }}
               style={styles.select}
@@ -185,9 +312,7 @@ function CreateOrder() {
                 </div>
                 <div>
                   <div style={styles.customerName}>{selectedCustomer.name}</div>
-                  <div style={styles.customerContact}>
-                    📞 {selectedCustomer.phone}
-                  </div>
+                  <div style={styles.customerContact}>📞 {selectedCustomer.phone}</div>
                   {selectedCustomer.address && (
                     <div style={styles.customerAddress}>
                       📍 {selectedCustomer.address}
@@ -198,62 +323,58 @@ function CreateOrder() {
             )}
           </div>
 
-          {/* Order Summary Card */}
           <div style={styles.summaryCard}>
-            <h3 style={styles.cardTitle}>Order Summary</h3>
-            
+            <h3 style={styles.summaryCardTitle}>Order Summary</h3>
+
             <div style={styles.summaryRow}>
               <span>Total Items:</span>
               <span style={styles.summaryValue}>
-                {items.filter(i => i.product_id).length}
+                {items.filter((i) => i.product_id).length}
               </span>
             </div>
-            
+
             <div style={styles.summaryRow}>
               <span>Total Quantity:</span>
               <span style={styles.summaryValue}>
                 {items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0)}
               </span>
             </div>
-            
+
             <div style={styles.divider} />
-            
+
             <div style={styles.summaryRow}>
               <span style={styles.totalLabel}>Total Amount:</span>
               <span style={styles.totalAmount}>₹{totalAmount}</span>
             </div>
-            
+
             <div style={styles.summaryRow}>
               <span>Paid Amount:</span>
               <span style={styles.paidAmount}>₹{Number(paidAmount || 0)}</span>
             </div>
-            
+
             <div style={styles.divider} />
-            
-            <div style={{
-              ...styles.summaryRow,
-              color: remainingAmount > 0 ? '#dc2626' : '#16a34a'
-            }}>
+
+            <div
+              style={{
+                ...styles.summaryRow,
+                color: remainingAmount > 0 ? "#fecaca" : "#bbf7d0"
+              }}
+            >
               <span style={styles.remainingLabel}>Remaining:</span>
               <span style={styles.remainingAmount}>₹{remainingAmount}</span>
             </div>
           </div>
         </div>
 
-        {/* Right Column - Products */}
         <div style={styles.rightColumn}>
           <div style={styles.card}>
             <div style={styles.cardHeader}>
               <h3 style={styles.cardTitle}>Add Products</h3>
-              <button 
-                onClick={addItem} 
-                style={styles.addButton}
-              >
+              <button onClick={addItem} style={styles.addButton}>
                 + Add Product
               </button>
             </div>
 
-            {/* Search Products */}
             <div style={styles.searchWrapper}>
               <span style={styles.searchIcon}>🔍</span>
               <input
@@ -264,46 +385,108 @@ function CreateOrder() {
                 style={styles.searchInput}
               />
               {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm("")}
-                  style={styles.clearButton}
-                >
+                <button onClick={() => setSearchTerm("")} style={styles.clearButton}>
                   ✕
                 </button>
               )}
             </div>
 
-            {/* Product Items */}
             <div style={styles.itemsContainer}>
               {items.map((item, index) => {
-                const selectedProduct = products.find(p => String(p.id) === String(item.product_id));
-                
+                const selectedProduct = products.find(
+                  (p) => String(p.id) === String(item.product_id)
+                );
+
+                const availableForRow = item.product_id
+                  ? getAvailableStockForRow(item.product_id, index)
+                  : 0;
+
+                const totalStock = selectedProduct ? Number(selectedProduct.stock || 0) : 0;
+                const minStock = selectedProduct
+                  ? Number(selectedProduct.min_stock || 0)
+                  : 0;
+                const quantity = Number(item.quantity || 0);
+                const exceedsStock =
+                  selectedProduct && quantity > availableForRow && availableForRow >= 0;
+                const isLowStock =
+                  selectedProduct && totalStock <= minStock && totalStock > 0;
+                const isOutOfStock = selectedProduct && totalStock <= 0;
+
                 return (
                   <div key={index} style={styles.itemRow} className="fade-in">
                     <div style={styles.itemNumber}>#{index + 1}</div>
-                    
+
                     <div style={styles.itemFields}>
-                      <select
-                        value={item.product_id}
-                        onChange={(e) => updateItem(index, "product_id", e.target.value)}
-                        style={styles.productSelect}
-                      >
-                        <option value="">Select Product</option>
-                        {filteredProducts.map((product) => (
-                          <option key={product.id} value={product.id}>
-                            {product.name} {product.variant ? `(${product.variant})` : ""} - ₹{product.price}/{product.unit}
-                          </option>
-                        ))}
-                      </select>
+                      <div style={styles.productFieldColumn}>
+                        <select
+                          value={item.product_id}
+                          onChange={(e) => updateItem(index, "product_id", e.target.value)}
+                          style={styles.productSelect}
+                        >
+                          <option value="">Select Product</option>
+                          {filteredProducts.map((product) => {
+                            const rowAvailable = getAvailableStockForRow(product.id, index);
+                            const stock = Number(product.stock || 0);
+                            const lowStock =
+                              stock <= Number(product.min_stock || 0) && stock > 0;
+
+                            return (
+                              <option key={product.id} value={product.id}>
+                                {product.name}{" "}
+                                {product.variant ? `(${product.variant})` : ""} - ₹
+                                {product.price}/{product.unit} | Stock: {rowAvailable}
+                                {stock <= 0 ? " | Out of stock" : lowStock ? " | Low stock" : ""}
+                              </option>
+                            );
+                          })}
+                        </select>
+
+                        {selectedProduct && (
+                          <div style={styles.stockInfoRow}>
+                            <span style={styles.stockMeta}>
+                              Available: <strong>{availableForRow}</strong> {selectedProduct.unit}
+                            </span>
+                            <span style={styles.stockMeta}>
+                              Total Stock: <strong>{totalStock}</strong>
+                            </span>
+                            <span
+                              style={{
+                                ...styles.stockBadge,
+                                background: isOutOfStock
+                                  ? "#fee2e2"
+                                  : isLowStock
+                                  ? "#fef3c7"
+                                  : "#dcfce7",
+                                color: isOutOfStock
+                                  ? "#dc2626"
+                                  : isLowStock
+                                  ? "#b45309"
+                                  : "#15803d"
+                              }}
+                            >
+                              {isOutOfStock
+                                ? "Out of Stock"
+                                : isLowStock
+                                ? "Low Stock"
+                                : "In Stock"}
+                            </span>
+                          </div>
+                        )}
+                      </div>
 
                       <div style={styles.quantityWrapper}>
                         <label style={styles.quantityLabel}>Qty:</label>
                         <input
                           type="number"
                           min="1"
+                          max={selectedProduct ? availableForRow || 1 : undefined}
                           value={item.quantity}
                           onChange={(e) => updateItem(index, "quantity", e.target.value)}
-                          style={styles.quantityInput}
+                          style={{
+                            ...styles.quantityInput,
+                            borderColor: exceedsStock ? "#ef4444" : "#e2e8f0"
+                          }}
+                          disabled={isOutOfStock}
                         />
                       </div>
 
@@ -322,15 +505,29 @@ function CreateOrder() {
                     >
                       ✕
                     </button>
+
+                    {selectedProduct && (
+                      <div style={styles.itemWarnings}>
+                        {availableForRow === 0 && (
+                          <div style={styles.errorText}>
+                            No stock available for this product
+                          </div>
+                        )}
+                        {quantity > availableForRow && availableForRow > 0 && (
+                          <div style={styles.errorText}>
+                            Quantity exceeds available stock. Max allowed here: {availableForRow}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}
             </div>
 
-            {/* Payment Section */}
             <div style={styles.paymentSection}>
               <h4 style={styles.paymentTitle}>Payment Details</h4>
-              
+
               <div style={styles.paymentRow}>
                 <label style={styles.paymentLabel}>Paid Amount:</label>
                 <div style={styles.paymentInputWrapper}>
@@ -348,7 +545,6 @@ function CreateOrder() {
               </div>
             </div>
 
-            {/* Action Buttons */}
             <div style={styles.actionButtons}>
               <button
                 type="button"
@@ -370,7 +566,7 @@ function CreateOrder() {
                 style={{
                   ...styles.submitButton,
                   opacity: loading ? 0.7 : 1,
-                  cursor: loading ? 'wait' : 'pointer'
+                  cursor: loading ? "wait" : "pointer"
                 }}
               >
                 {loading ? (
@@ -379,7 +575,7 @@ function CreateOrder() {
                     Creating Order...
                   </>
                 ) : (
-                  'Create Order'
+                  "Create Order"
                 )}
               </button>
             </div>
@@ -387,7 +583,6 @@ function CreateOrder() {
         </div>
       </div>
 
-      {/* Quick Tips */}
       <div style={styles.tipsCard}>
         <div style={styles.tipsIcon}>💡</div>
         <div style={styles.tipsContent}>
@@ -395,6 +590,7 @@ function CreateOrder() {
           <span>• Add multiple products to create a complete order</span>
           <span>• Paid amount cannot exceed total amount</span>
           <span>• Remaining amount will be marked as due</span>
+          <span>• Quantity cannot exceed available stock</span>
         </div>
       </div>
     </div>
@@ -410,7 +606,7 @@ const styles = {
     minHeight: "100vh"
   },
   header: {
-    marginBottom: "32px"
+    marginBottom: "24px"
   },
   title: {
     fontSize: "32px",
@@ -423,6 +619,41 @@ const styles = {
     color: "#475569",
     fontSize: "16px",
     margin: 0
+  },
+  topStats: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+    gap: "16px",
+    marginBottom: "24px"
+  },
+  topStatCard: {
+    background: "white",
+    borderRadius: "16px",
+    padding: "18px",
+    display: "flex",
+    alignItems: "center",
+    gap: "14px",
+    border: "1px solid #e2e8f0",
+    boxShadow: "0 4px 6px -1px rgba(0,0,0,0.08)"
+  },
+  topStatIcon: {
+    width: "44px",
+    height: "44px",
+    borderRadius: "12px",
+    background: "#f1f5f9",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "24px"
+  },
+  topStatLabel: {
+    fontSize: "13px",
+    color: "#64748b"
+  },
+  topStatValue: {
+    fontSize: "22px",
+    fontWeight: "700",
+    color: "#0f172a"
   },
   contentGrid: {
     display: "grid",
@@ -449,6 +680,12 @@ const styles = {
     background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
     borderRadius: "20px",
     padding: "24px",
+    color: "white"
+  },
+  summaryCardTitle: {
+    fontSize: "18px",
+    fontWeight: "600",
+    margin: "0 0 20px 0",
     color: "white"
   },
   cardTitle: {
@@ -590,18 +827,19 @@ const styles = {
     flexDirection: "column",
     gap: "12px",
     marginBottom: "24px",
-    maxHeight: "400px",
+    maxHeight: "500px",
     overflowY: "auto",
     padding: "4px"
   },
   itemRow: {
     display: "flex",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: "12px",
     padding: "16px",
     background: "#f8fafc",
     borderRadius: "12px",
-    border: "1px solid #e2e8f0"
+    border: "1px solid #e2e8f0",
+    flexWrap: "wrap"
   },
   itemNumber: {
     width: "32px",
@@ -613,16 +851,25 @@ const styles = {
     justifyContent: "center",
     fontSize: "14px",
     fontWeight: "600",
-    color: "#475569"
+    color: "#475569",
+    marginTop: "4px"
   },
   itemFields: {
     flex: 1,
     display: "flex",
     gap: "12px",
-    alignItems: "center"
+    alignItems: "flex-start",
+    minWidth: "0"
+  },
+  productFieldColumn: {
+    flex: 2,
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+    minWidth: "0"
   },
   productSelect: {
-    flex: 2,
+    width: "100%",
     padding: "10px",
     border: "1px solid #e2e8f0",
     borderRadius: "8px",
@@ -630,18 +877,38 @@ const styles = {
     outline: "none",
     background: "white"
   },
+  stockInfoRow: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "8px",
+    alignItems: "center"
+  },
+  stockMeta: {
+    fontSize: "12px",
+    color: "#475569",
+    background: "#eef2ff",
+    padding: "4px 8px",
+    borderRadius: "999px"
+  },
+  stockBadge: {
+    fontSize: "12px",
+    fontWeight: "600",
+    padding: "4px 10px",
+    borderRadius: "999px"
+  },
   quantityWrapper: {
     flex: 1,
     display: "flex",
     alignItems: "center",
-    gap: "8px"
+    gap: "8px",
+    minWidth: "140px"
   },
   quantityLabel: {
     fontSize: "14px",
     color: "#64748b"
   },
   quantityInput: {
-    width: "80px",
+    width: "90px",
     padding: "10px",
     border: "1px solid #e2e8f0",
     borderRadius: "8px",
@@ -649,9 +916,10 @@ const styles = {
     outline: "none"
   },
   itemTotal: {
-    minWidth: "80px",
+    minWidth: "90px",
     fontWeight: "600",
-    color: "#0f172a"
+    color: "#0f172a",
+    paddingTop: "10px"
   },
   removeButton: {
     width: "32px",
@@ -665,7 +933,17 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    transition: "all 0.2s ease"
+    transition: "all 0.2s ease",
+    marginTop: "4px"
+  },
+  itemWarnings: {
+    width: "100%",
+    marginLeft: "44px"
+  },
+  errorText: {
+    fontSize: "12px",
+    color: "#dc2626",
+    fontWeight: "500"
   },
   paymentSection: {
     background: "#f8fafc",

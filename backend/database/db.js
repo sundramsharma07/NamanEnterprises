@@ -10,8 +10,8 @@ const db = new sqlite3.Database(dbPath, (err) => {
     console.log("SQLite Connected");
 
     db.run("PRAGMA foreign_keys = ON");
-db.run("PRAGMA journal_mode = WAL");
-db.run("PRAGMA synchronous = FULL");
+    db.run("PRAGMA journal_mode = WAL");
+    db.run("PRAGMA synchronous = FULL");
 
     db.run(`
       CREATE TABLE IF NOT EXISTS users (
@@ -85,6 +85,54 @@ db.run("PRAGMA synchronous = FULL");
       )
     `);
 
+    // NEW TABLE FOR STOCK HISTORY
+    db.run(`
+      CREATE TABLE IF NOT EXISTS stock_movements (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        product_id INTEGER NOT NULL,
+        movement_type TEXT NOT NULL, -- IN, OUT, SALE, RETURN, ADJUSTMENT
+        quantity REAL NOT NULL,
+        old_stock REAL NOT NULL,
+        new_stock REAL NOT NULL,
+        note TEXT,
+        ref_order_id TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+        FOREIGN KEY (ref_order_id) REFERENCES orders(order_id) ON DELETE SET NULL
+      )
+    `);
+
+    // CHECK OLD PRODUCTS TABLE AND ADD STOCK COLUMNS IF MISSING
+    db.all(`PRAGMA table_info(products)`, [], (tableErr, columns) => {
+      if (tableErr) {
+        console.log("Failed to inspect products table:", tableErr.message);
+        return;
+      }
+
+      const columnNames = columns.map((col) => col.name);
+
+      const addColumnIfMissing = (columnName, columnType) => {
+        if (!columnNames.includes(columnName)) {
+          db.run(
+            `ALTER TABLE products ADD COLUMN ${columnName} ${columnType}`,
+            (alterErr) => {
+              if (alterErr) {
+                console.log(`Failed to add ${columnName}:`, alterErr.message);
+              } else {
+                console.log(`${columnName} column added to products table`);
+              }
+            }
+          );
+        } else {
+          console.log(`${columnName} column already exists in products table`);
+        }
+      };
+
+      addColumnIfMissing("stock", "REAL NOT NULL DEFAULT 0");
+      addColumnIfMissing("min_stock", "REAL NOT NULL DEFAULT 0");
+    });
+
+    // KEEPING YOUR EXISTING OLD-MIGRATION BLOCK FOR ORDER_ITEMS
     db.all(`PRAGMA table_info(order_items)`, [], (tableErr, columns) => {
       if (tableErr) {
         console.log("Failed to inspect order_items table:", tableErr.message);
