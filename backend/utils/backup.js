@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const sqlite3 = require("sqlite3").verbose();
 
 function createBackup() {
   const dbPath =
@@ -33,9 +34,18 @@ function createBackup() {
   const backupFile = `store-backup-${date}-${time}.db`;
   const backupPath = path.join(backupDir, backupFile);
 
-  fs.copyFileSync(dbPath, backupPath);
+  const db = new sqlite3.Database(dbPath);
 
-  console.log("Backup created:", backupPath);
+  db.serialize(() => {
+    db.run(`VACUUM INTO '${backupPath}'`, (err) => {
+      if (err) {
+        console.error("Backup failed:", err.message);
+      } else {
+        console.log("Backup created:", backupPath);
+      }
+      db.close();
+    });
+  });
 }
 
 module.exports = createBackup;

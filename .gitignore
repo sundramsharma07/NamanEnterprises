@@ -1,6 +1,10 @@
 .env
-database/store.db
-database/store.db-shm
-database/store.db-wal
-backups
-node_modules
+node_modules/
+
+# sqlite
+*.db
+*.db-shm
+*.db-wal
+
+# backups
+database/backups/
