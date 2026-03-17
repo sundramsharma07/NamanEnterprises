@@ -2,11 +2,16 @@ const fs = require("fs");
 const path = require("path");
 
 function createBackup() {
-  const dbPath = path.join(__dirname, "../database/store.db");
-  const backupDir = path.join(__dirname, "../backups");
+  const dbPath =
+    process.env.SQLITE_PATH ||
+    path.join(__dirname, "../database/store.db");
+
+  const backupDir =
+    process.env.BACKUP_DIR ||
+    path.join(__dirname, "../backups");
 
   if (!fs.existsSync(backupDir)) {
-    fs.mkdirSync(backupDir);
+    fs.mkdirSync(backupDir, { recursive: true });
   }
 
   const now = new Date();
@@ -26,12 +31,11 @@ function createBackup() {
     String(now.getSeconds()).padStart(2, "0");
 
   const backupFile = `store-backup-${date}-${time}.db`;
-
   const backupPath = path.join(backupDir, backupFile);
 
   fs.copyFileSync(dbPath, backupPath);
 
-  console.log("Backup created:", backupFile);
+  console.log("Backup created:", backupPath);
 }
 
 module.exports = createBackup;

@@ -1,7 +1,8 @@
 const sqlite3 = require("sqlite3").verbose();
 const path = require("path");
 
-const dbPath = path.join(__dirname, "store.db");
+const dbPath =
+  process.env.SQLITE_PATH || path.join(__dirname, "store.db");
 
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
