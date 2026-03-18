@@ -55,3 +55,13 @@ Built with a focus on **clean architecture**, **local performance**, and **real 
 ---
 
 
+👨‍💻 Author
+Sundram Sharma
+
+⭐ Support
+If you like this project:
+
+⭐ Star the repo
+🍴 Fork it
+📢 Share it
+
