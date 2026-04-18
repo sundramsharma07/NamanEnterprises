@@ -1,391 +1,253 @@
 import { Link, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  BarChart3, 
+  Users, 
+  Package, 
+  ShoppingCart, 
+  PlusCircle, 
+  Banknote,
+  Menu,
+  X,
+  Building2
+} from "lucide-react";
+
+const NAV_LINKS = [
+  { path: "/dashboard", label: "Dashboard", icon: BarChart3 },
+  { path: "/customers", label: "Customers", icon: Users },
+  { path: "/products", label: "Products", icon: Package },
+  { path: "/orders", label: "Orders", icon: ShoppingCart },
+  { path: "/create-order", label: "Create Order", icon: PlusCircle },
+  { path: "/due-customers", label: "Due Section", icon: Banknote }
+];
 
 function Navbar() {
   const location = useLocation();
-  const [scrolled, setScrolled] = useState(false);
-  const [hoveredLink, setHoveredLink] = useState(null);
-  const [logoHover, setLogoHover] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [hoveredIndex, setHoveredIndex] = useState(null);
 
   useEffect(() => {
     const handleScroll = () => {
-      setScrolled(window.scrollY > 50);
+      // Scroll handling logic if needed
     };
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const isActive = (path) => {
-    return location.pathname === path;
-  };
-
-  const navLinks = [
-    { path: "/", label: "Dashboard", icon: "📊", color: "#FF6B6B" },
-    { path: "/customers", label: "Customers", icon: "👥", color: "#4ECDC4" },
-    { path: "/products", label: "Products", icon: "📦", color: "#45B7D1" },
-    { path: "/orders", label: "Orders", icon: "🛒", color: "#96CEB4" },
-    { path: "/create-order", label: "Create Order", icon: "✨", color: "#FFEAA7" },
-    { path: "/due-customers", label: "Due", icon: "💰", color: "#FF9F1C" }
-  ];
+  // Mobile menu closes automatically on route change via user interaction
 
   return (
-    <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
-        
-        @keyframes float {
-          0%, 100% { transform: translateY(0px) rotate(0deg); }
-          25% { transform: translateY(-5px) rotate(2deg); }
-          75% { transform: translateY(5px) rotate(-2deg); }
-        }
-        
-        @keyframes shimmer {
-          0% { background-position: -200% 0; }
-          100% { background-position: 200% 0; }
-        }
-        
-        @keyframes pulse {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.05); }
-        }
-        
-        @keyframes glow {
-          0%, 100% { filter: drop-shadow(0 0 5px rgba(255,255,255,0.5)); }
-          50% { filter: drop-shadow(0 0 20px rgba(255,255,255,0.8)); }
-        }
-        
-        @keyframes wave {
-          0%, 100% { transform: rotate(0deg); }
-          25% { transform: rotate(10deg); }
-          75% { transform: rotate(-10deg); }
-        }
-        
-        @keyframes slideIn {
-          from {
-            opacity: 0;
-            transform: translateX(-20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-        
-        .navbar {
-          font-family: 'Poppins', sans-serif;
-          background: ${scrolled 
-            ? 'linear-gradient(135deg, #1a2639 0%, #0f172a 100%)' 
-            : 'linear-gradient(135deg, #2b3a67 0%, #1b2a4e 100%)'};
-          padding: ${scrolled ? '10px 30px' : '16px 40px'};
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          box-shadow: ${scrolled 
-            ? '0 10px 30px -10px rgba(0,0,0,0.3)' 
-            : '0 4px 20px rgba(0,0,0,0.1)'};
-          position: sticky;
-          top: 0;
-          z-index: 1000;
-          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-          backdrop-filter: ${scrolled ? 'blur(10px)' : 'none'};
-          border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-        
-        .logo-container {
-          display: flex;
-          align-items: center;
-          gap: 15px;
-          text-decoration: none;
-          position: relative;
-          animation: slideIn 0.6s ease;
-        }
-        
-        .logo-wrapper {
-          position: relative;
-          cursor: pointer;
-        }
-        
-        .logo-icon {
-          width: 55px;
-          height: 55px;
-          background: linear-gradient(135deg, #667eea, #764ba2);
-          border-radius: 18px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 28px;
-          font-weight: 700;
-          color: white;
-          box-shadow: 0 10px 20px -5px rgba(102,126,234,0.5);
-          transform: ${logoHover ? 'scale(1.1) rotate(360deg)' : 'scale(1) rotate(0)'};
-          transition: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-          position: relative;
-          z-index: 2;
-          animation: float 3s ease-in-out infinite;
-        }
-        
-        .logo-icon::before {
-          content: '';
-          position: absolute;
-          top: -3px;
-          left: -3px;
-          right: -3px;
-          bottom: -3px;
-          background: linear-gradient(135deg, #667eea, #764ba2, #ff6b6b);
-          border-radius: 20px;
-          z-index: -1;
-          opacity: ${logoHover ? '0.8' : '0'};
-          filter: blur(10px);
-          transition: opacity 0.3s ease;
-          animation: ${logoHover ? 'pulse 1s ease infinite' : 'none'};
-        }
-        
-        .logo-ring {
-          position: absolute;
-          top: -5px;
-          left: -5px;
-          right: -5px;
-          bottom: -5px;
-          border: 2px solid rgba(255,255,255,0.3);
-          border-radius: 22px;
-          animation: wave 3s ease-in-out infinite;
-          opacity: ${logoHover ? '1' : '0'};
-          transition: opacity 0.3s ease;
-        }
-        
-        .logo-ring:nth-child(2) {
-          animation-delay: 0.5s;
-        }
-        
-        .logo-ring:nth-child(3) {
-          animation-delay: 1s;
-        }
-        
-        .logo-text-container {
-          position: relative;
-          overflow: hidden;
-        }
-        
-        .logo-text {
-          font-size: 26px;
-          font-weight: 700;
-          color: white;
-          letter-spacing: -0.5px;
-          text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-          background: linear-gradient(90deg, #fff, #ffeaa7, #fff);
-          background-size: 200% auto;
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          animation: ${logoHover ? 'shimmer 2s linear infinite' : 'none'};
-          transition: all 0.3s ease;
-        }
-        
-        .logo-tagline {
-          font-size: 12px;
-          color: rgba(255,255,255,0.7);
-          margin-top: 2px;
-          font-weight: 400;
-          letter-spacing: 0.5px;
-          transform: ${logoHover ? 'translateY(0)' : 'translateY(5px)'};
-          opacity: ${logoHover ? '1' : '0.7'};
-          transition: all 0.3s ease;
-        }
-        
-        .logo-dot {
-          display: inline-block;
-          width: 6px;
-          height: 6px;
-          background: #ff6b6b;
-          border-radius: 50%;
-          margin-left: 4px;
-          animation: pulse 1.5s ease infinite;
-        }
-        
-        .nav-links {
-          display: flex;
-          gap: 5px;
-          align-items: center;
-          flex-wrap: wrap;
-        }
-        
-        .nav-link {
-          text-decoration: none;
-          color: rgba(255,255,255,0.9);
-          font-weight: 500;
-          font-size: 15px;
-          padding: 12px 20px;
-          border-radius: 40px;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-          position: relative;
-          overflow: hidden;
-          isolation: isolate;
-        }
-        
-        .nav-link::before {
-          content: '';
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          width: 0;
-          height: 0;
-          border-radius: 50%;
-          background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
-          transform: translate(-50%, -50%);
-          transition: width 0.6s, height 0.6s;
-          z-index: -1;
-        }
-        
-        .nav-link:hover::before {
-          width: 300px;
-          height: 300px;
-        }
-        
-        .nav-link.active {
-          background: linear-gradient(135deg, #667eea, #764ba2);
-          color: white;
-          box-shadow: 0 10px 20px -5px rgba(102,126,234,0.5);
-          animation: glow 2s ease-in-out infinite;
-        }
-        
-        .nav-link.active .nav-icon {
-          animation: pulse 1s ease infinite;
-        }
-        
-        .nav-icon {
-          font-size: 20px;
-          transition: all 0.3s ease;
-          filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
-        }
-        
-        .nav-link:hover .nav-icon {
-          transform: scale(1.2) rotate(10deg);
-        }
-        
-        .nav-label {
-          position: relative;
-        }
-        
-        .nav-label::after {
-          content: '';
-          position: absolute;
-          bottom: -4px;
-          left: 0;
-          width: ${hoveredLink ? '100%' : '0'};
-          height: 2px;
-          background: white;
-          transition: width 0.3s ease;
-        }
-        
-        .nav-badge {
-          position: absolute;
-          top: -5px;
-          right: -5px;
-          width: 8px;
-          height: 8px;
-          background: #ff6b6b;
-          border-radius: 50%;
-          animation: pulse 1.5s ease infinite;
-        }
-        
-        @media (max-width: 768px) {
-          .navbar {
-            padding: 12px 20px;
-            flex-wrap: wrap;
-          }
-          
-          .logo-text {
-            font-size: 20px;
-          }
-          
-          .logo-tagline {
-            display: none;
-          }
-          
-          .logo-icon {
-            width: 45px;
-            height: 45px;
-            font-size: 22px;
-          }
-          
-          .nav-links {
-            order: 3;
-            width: 100%;
-            margin-top: 15px;
-            justify-content: center;
-            gap: 3px;
-          }
-          
-          .nav-link {
-            font-size: 13px;
-            padding: 8px 12px;
-          }
-        }
-      `}</style>
-
-      <nav className="navbar">
-        {/* Animated Logo Section */}
-        <Link 
-          to="/" 
-          className="logo-container"
-          onMouseEnter={() => setLogoHover(true)}
-          onMouseLeave={() => setLogoHover(false)}
+    <nav 
+      style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 1000,
+        background: "#ffffff",
+        borderBottom: "1px solid #e2e8f0",
+        height: "64px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "0 32px",
+        transition: "all 0.3s ease",
+        fontFamily: "'Inter', sans-serif",
+        boxShadow: "0 1px 3px rgba(0, 0, 0, 0.04)",
+      }}
+    >
+      <style>{css}</style>
+      
+      {/* Brand Logo */}
+      <Link to="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: "12px" }}>
+        <div
+          style={{
+            width: "36px",
+            height: "36px",
+            background: "#2563EB",
+            borderRadius: "10px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#ffffff",
+            boxShadow: "0 2px 8px rgba(37, 99, 235, 0.25)",
+          }}
         >
-          <div className="logo-wrapper">
-            <div className="logo-icon">
-              <span>NE</span>
-            </div>
-            <div className="logo-ring"></div>
-            <div className="logo-ring"></div>
-            <div className="logo-ring"></div>
-          </div>
-          <div className="logo-text-container">
-            <div className="logo-text">
-              Naman Enterprises
-              <span className="logo-dot"></span>
-            </div>
-            <div className="logo-tagline">
-              {logoHover ? '✨ Quality First ✨' : 'Your trusted partner'}
-            </div>
-          </div>
-        </Link>
+          <Building2 size={20} strokeWidth={2.5} />
+        </div>
+        <span 
+          style={{ fontSize: "17px", fontWeight: "700", color: "#0F172A", letterSpacing: "-0.3px" }}
+        >
+          Naman Enterprises
+        </span>
+      </Link>
 
-        {/* Navigation Links with Animations */}
-        <div className="nav-links">
-          {navLinks.map((link, index) => (
+      {/* Desktop Links */}
+      <div className="desktop-nav" style={styles.desktopLinks}>
+        {NAV_LINKS.map((link) => {
+          const isActive = location.pathname === link.path;
+          const Icon = link.icon;
+          
+          return (
             <Link
               key={link.path}
               to={link.path}
-              className={`nav-link ${isActive(link.path) ? 'active' : ''}`}
-              onMouseEnter={() => setHoveredLink(index)}
-              onMouseLeave={() => setHoveredLink(null)}
+              onMouseEnter={() => setHoveredIndex(NAV_LINKS.indexOf(link))}
+              onMouseLeave={() => setHoveredIndex(null)}
               style={{
-                animation: `slideIn 0.3s ease ${index * 0.1}s both`
+                textDecoration: "none",
+                color: isActive ? "#2563EB" : "#64748b",
+                padding: "8px 14px",
+                fontSize: "13px",
+                fontWeight: isActive ? "600" : "500",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                position: "relative",
+                transition: "all 0.2s ease",
+                borderRadius: "8px",
+                background: isActive ? "rgba(37, 99, 235, 0.06)" : "transparent",
               }}
             >
-              <span className="nav-icon">{link.icon}</span>
-              <span className="nav-label">{link.label}</span>
-              {link.label === "Create Order" && (
-                <span className="nav-badge"></span>
+              <Icon size={16} strokeWidth={isActive ? 2.5 : 2} />
+              {link.label}
+
+              {/* Hover Effect */}
+              {hoveredIndex === NAV_LINKS.indexOf(link) && !isActive && (
+                <motion.div
+                  layoutId="nav-hover"
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    background: "rgba(241, 245, 249, 0.8)",
+                    borderRadius: "8px",
+                    zIndex: -1,
+                  }}
+                  transition={{ duration: 0.15 }}
+                />
               )}
             </Link>
-          ))}
-        </div>
+          );
+        })}
+      </div>
 
-        {/* Decorative Elements */}
-        <div style={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: '1px',
-          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)'
-        }} />
-      </nav>
-    </>
+      {/* Mobile Menu Button */}
+      <button 
+        className="menu-btn"
+        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        style={styles.menuBtn}
+      >
+        {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+      </button>
+
+      {/* Mobile Drawer */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileMenuOpen(false)}
+              style={styles.drawerBackdrop}
+            />
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              style={styles.drawer}
+            >
+              <div style={{ padding: "32px 24px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "32px" }}>
+                  <h2 style={{ fontSize: "20px", color: "#0F172A", fontWeight: "700" }}>Menu</h2>
+                  <button onClick={() => setMobileMenuOpen(false)} style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer", padding: "4px" }}>
+                    <X size={22} />
+                  </button>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                  {NAV_LINKS.map((link) => {
+                    const isActive = location.pathname === link.path;
+                    const Icon = link.icon;
+
+                    return (
+                      <Link
+                        key={link.path}
+                        to={link.path}
+                        onClick={() => setMobileMenuOpen(false)}
+                        style={{
+                          textDecoration: "none",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "14px",
+                          padding: "14px 16px",
+                          borderRadius: "10px",
+                          background: isActive ? "rgba(37, 99, 235, 0.06)" : "transparent",
+                          color: isActive ? "#2563EB" : "#475569",
+                          fontWeight: isActive ? "600" : "500",
+                          fontSize: "15px",
+                          transition: "all 0.2s ease"
+                        }}
+                      >
+                        <Icon size={20} />
+                        {link.label}
+                      </Link>
+                    )
+                  })}
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </nav>
   );
 }
+
+const styles = {
+  desktopLinks: {
+    display: "flex",
+    gap: "2px",
+  },
+  menuBtn: {
+    display: "flex",
+    background: "none",
+    border: "none",
+    color: "#475569",
+    cursor: "pointer",
+    padding: "8px",
+    borderRadius: "8px",
+    transition: "all 0.2s ease"
+  },
+  drawerBackdrop: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(15, 23, 42, 0.3)",
+    backdropFilter: "blur(4px)",
+    zIndex: 1001
+  },
+  drawer: {
+    position: "fixed",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    width: "300px",
+    background: "#ffffff",
+    boxShadow: "-10px 0 40px rgba(0,0,0,0.08)",
+    zIndex: 1002,
+    borderLeft: "1px solid #e2e8f0",
+  }
+};
+
+// Add CSS for Media Query visibility
+const css = `
+@media (min-width: 1024px) {
+  .menu-btn { display: none !important; }
+  .desktop-nav { display: flex !important; }
+}
+@media (max-width: 1023px) {
+  .menu-btn { display: flex !important; }
+  .desktop-nav { display: none !important; }
+}
+`;
 
 export default Navbar;

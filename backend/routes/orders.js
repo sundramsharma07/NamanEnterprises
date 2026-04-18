@@ -2,6 +2,35 @@ const express = require("express");
 const router = express.Router();
 const db = require("../database/db");
 
+// GET ACTIVITY LOGS FOR DASHBOARD PULSE
+router.get("/activity-logs", (req, res) => {
+  console.log("Activity logs requested");
+  const sql = `
+    SELECT 
+      h.*, 
+      c.name AS customer_name,
+      o.order_id
+    FROM due_history h
+    JOIN customers c ON h.customer_id = c.id
+    LEFT JOIN orders o ON h.related_order_id = o.order_id
+    ORDER BY h.created_at DESC
+    LIMIT 20
+  `;
+
+  db.all(sql, [], (err, rows) => {
+    if (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to fetch activity logs",
+        error: err.message
+      });
+    }
+
+    res.json(rows);
+  });
+});
+
+
 
 // GET ALL ORDERS
 router.get("/", (req, res) => {
@@ -39,6 +68,7 @@ router.get("/", (req, res) => {
 });
 
 
+
 // GET CUSTOMERS WITH DUE AMOUNT
 router.get("/due/customers", (req, res) => {
   const sql = `
@@ -46,7 +76,8 @@ router.get("/due/customers", (req, res) => {
       c.id,
       c.name,
       c.phone,
-      SUM(o.remaining_amount) AS total_due
+      SUM(o.remaining_amount) AS total_due,
+      MIN(o.created_at) AS oldest_due_date
     FROM customers c
     JOIN orders o ON c.id = o.customer_id
     WHERE o.remaining_amount > 0
@@ -299,35 +330,48 @@ router.post("/", (req, res) => {
 
                   const insertOrderItemAndUpdateStock = (index) => {
                     if (index >= preparedItems.length) {
-                      if (paid > 0) {
-                        db.run(
-                          `INSERT INTO payments (order_id, amount) VALUES (?, ?)`,
-                          [order_id, paid],
-                          (paymentErr) => {
-                            if (paymentErr) {
-                              return rollbackWithError("Failed to save payment", paymentErr);
-                            }
+                      // Finalize Order: Update Customer Total Due & History if applicable
+                      const newTotalDue = (customer.total_due || 0) + remaining_amount;
+                      
+                      db.run(
+                        "UPDATE customers SET total_due = ? WHERE id = ?",
+                        [newTotalDue, customer_id],
+                        (custUpdateErr) => {
+                          if (custUpdateErr) return rollbackWithError("Failed to update customer due", custUpdateErr);
 
-                            db.run("COMMIT", (commitErr) => {
-                              if (commitErr) {
-                                return rollbackWithError("Failed to commit order", commitErr);
+                          if (remaining_amount > 0) {
+                            db.run(
+                              "INSERT INTO due_history (customer_id, type, amount, balance_after, reason) VALUES (?, ?, ?, ?, ?)",
+                              [customer_id, "GIVEN_DUE", remaining_amount, newTotalDue, `Order ${order_id}`],
+                              (dueHistErr) => {
+                                if (dueHistErr) return rollbackWithError("Failed to record due history", dueHistErr);
+                                finishOrder();
                               }
-
-                              if (!responseSent) {
-                                responseSent = true;
-                                return res.json({
-                                  success: true,
-                                  message: "Order created successfully",
-                                  order_id,
-                                  total_amount,
-                                  paid_amount: paid,
-                                  remaining_amount
-                                });
-                              }
-                            });
+                            );
+                          } else {
+                            finishOrder();
                           }
-                        );
-                      } else {
+                        }
+                      );
+
+                      function finishOrder() {
+                        if (paid > 0) {
+                          db.run(
+                            `INSERT INTO payments (order_id, amount) VALUES (?, ?)`,
+                            [order_id, paid],
+                            (paymentErr) => {
+                              if (paymentErr) {
+                                return rollbackWithError("Failed to save payment", paymentErr);
+                              }
+                              commitOrder();
+                            }
+                          );
+                        } else {
+                          commitOrder();
+                        }
+                      }
+
+                      function commitOrder() {
                         db.run("COMMIT", (commitErr) => {
                           if (commitErr) {
                             return rollbackWithError("Failed to commit order", commitErr);
@@ -441,75 +485,100 @@ router.post("/:order_id/pay", (req, res) => {
     });
   }
 
-  db.get(
-    "SELECT * FROM orders WHERE order_id = ?",
-    [orderId],
-    (err, order) => {
-      if (err) {
-        return res.status(500).json({
-          success: false,
-          message: "Database error",
-          error: err.message
-        });
-      }
+  db.serialize(() => {
+    db.run("BEGIN TRANSACTION");
 
-      if (!order) {
-        return res.status(404).json({
-          success: false,
-          message: "Order not found"
-        });
-      }
+    db.get(
+      "SELECT o.*, c.id as cust_id, c.total_due FROM orders o JOIN customers c ON o.customer_id = c.id WHERE o.order_id = ?",
+      [orderId],
+      (err, order) => {
+        if (err || !order) {
+          db.run("ROLLBACK");
+          return res.status(404).json({
+            success: false,
+            message: order ? "Database error" : "Order not found"
+          });
+        }
 
-      const newPaid = Number(order.paid_amount) + Number(amount);
-      const remaining = Number(order.total_amount) - newPaid;
+        const newPaid = Number(order.paid_amount) + Number(amount);
+        const remaining = Number(order.total_amount) - newPaid;
 
-      if (remaining < 0) {
-        return res.status(400).json({
-          success: false,
-          message: "Payment exceeds remaining amount"
-        });
-      }
+        if (remaining < 0) {
+          db.run("ROLLBACK");
+          return res.status(400).json({
+            success: false,
+            message: "Payment exceeds remaining amount"
+          });
+        }
 
-      const paymentType = remaining === 0 ? "paid" : "partial";
+        const paymentType = remaining === 0 ? "paid" : "partial";
+        const newCustomerDue = (order.total_due || 0) - Number(amount);
 
-      db.run(
-        "INSERT INTO payments (order_id, amount) VALUES (?, ?)",
-        [orderId, amount],
-        (payErr) => {
-          if (payErr) {
-            return res.status(500).json({
-              success: false,
-              message: "Failed to record payment",
-              error: payErr.message
-            });
-          }
-
-          db.run(
-            `UPDATE orders 
-             SET paid_amount = ?, remaining_amount = ?, payment_type = ?
-             WHERE order_id = ?`,
-            [newPaid, remaining, paymentType, orderId],
-            function (updateErr) {
-              if (updateErr) {
-                return res.status(500).json({
-                  success: false,
-                  message: "Failed to update order",
-                  error: updateErr.message
-                });
-              }
-
-              res.json({
-                success: true,
-                message: "Payment received successfully",
-                paid_amount: newPaid,
-                remaining_amount: remaining
+        db.run(
+          "INSERT INTO payments (order_id, amount) VALUES (?, ?)",
+          [orderId, amount],
+          (payErr) => {
+            if (payErr) {
+              db.run("ROLLBACK");
+              return res.status(500).json({
+                success: false,
+                message: "Failed to record payment"
               });
             }
-          );
-        }
-      );
-    }
-  );
+
+            db.run(
+              `UPDATE orders 
+               SET paid_amount = ?, remaining_amount = ?, payment_type = ?
+               WHERE order_id = ?`,
+              [newPaid, remaining, paymentType, orderId],
+              (updateErr) => {
+                if (updateErr) {
+                  db.run("ROLLBACK");
+                  return res.status(500).json({ success: false, message: "Failed to update order" });
+                }
+
+                db.run(
+                  "UPDATE customers SET total_due = ? WHERE id = ?",
+                  [newCustomerDue, order.cust_id],
+                  (custErr) => {
+                    if (custErr) {
+                      db.run("ROLLBACK");
+                      return res.status(500).json({ success: false, message: "Failed to update customer" });
+                    }
+
+                    db.run(
+                      "INSERT INTO due_history (customer_id, type, amount, balance_after, reason) VALUES (?, ?, ?, ?, ?)",
+                      [order.cust_id, "PAID_DUE", amount, newCustomerDue, `Payment for ${orderId}`],
+                      (histErr) => {
+                        if (histErr) {
+                          db.run("ROLLBACK");
+                          return res.status(500).json({ success: false, message: "Failed to record due history" });
+                        }
+
+                        db.run("COMMIT", (commitErr) => {
+                          if (commitErr) {
+                            db.run("ROLLBACK");
+                            return res.status(500).json({ success: false, message: "Commit failed" });
+                          }
+
+                          res.json({
+                            success: true,
+                            message: "Payment received successfully",
+                            paid_amount: newPaid,
+                            remaining_amount: remaining
+                          });
+                        });
+                      }
+                    );
+                  }
+                );
+              }
+            );
+          }
+        );
+      }
+    );
+  });
 });
 
 

@@ -1,731 +1,300 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../services/api";
+import { 
+  Receipt, 
+  Search, 
+  Filter, 
+  Calendar, 
+  ArrowUpRight, 
+  TrendingUp, 
+  CheckCircle2, 
+  Clock, 
+  MoreHorizontal,
+  Plus,
+  ChevronRight,
+  IndianRupee,
+  FileText
+} from "lucide-react";
+import { Card, Skeleton } from "../components/ui";
+import { motion } from "framer-motion";
+import toast from "react-hot-toast";
 
 function Orders() {
+  const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [dateFilter, setDateFilter] = useState("all");
+  const [dateRange, setDateRange] = useState("all");
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
       const res = await api.get("/orders");
       setOrders(res.data.orders || []);
     } catch (error) {
       console.error("Failed to fetch orders:", error);
+      toast.error("Could not sync orders");
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchOrders();
-  }, []);
+  }, [fetchOrders]);
 
-  const filteredOrders = orders.filter((order) => {
-    const matchesSearch =
-      order.order_id?.toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.id?.toString().includes(searchTerm);
+  const filteredOrders = useMemo(() => {
+    return orders.filter(o => {
+      const matchSearch = String(o.order_id).includes(searchTerm) || o.customer_name?.toLowerCase().includes(searchTerm.toLowerCase());
+      const remaining = Number(o.remaining_amount || 0);
+      let matchStatus = true;
+      if (statusFilter === 'paid') matchStatus = remaining === 0;
+      if (statusFilter === 'due') matchStatus = remaining > 0;
 
-    const remaining = Number(order.remaining_amount || 0);
-    let matchesStatus = true;
-
-    if (statusFilter === "paid") {
-      matchesStatus = remaining === 0;
-    } else if (statusFilter === "due") {
-      matchesStatus = remaining > 0;
-    } else if (statusFilter === "partial") {
-      matchesStatus =
-        remaining > 0 && remaining < Number(order.total_amount || 0);
-    }
-
-    let matchesDate = true;
-    const orderDate = order.created_at ? new Date(order.created_at) : null;
-    const now = new Date();
-
-    if (orderDate && dateFilter !== "all") {
-      const startOfToday = new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        now.getDate()
-      );
-
-      const startOfWeek = new Date(now);
-      startOfWeek.setDate(now.getDate() - now.getDay());
-      startOfWeek.setHours(0, 0, 0, 0);
-
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-      if (dateFilter === "today") {
-        matchesDate = orderDate >= startOfToday;
-      } else if (dateFilter === "week") {
-        matchesDate = orderDate >= startOfWeek;
-      } else if (dateFilter === "month") {
-        matchesDate = orderDate >= startOfMonth;
-      }
-    }
-
-    return matchesSearch && matchesStatus && matchesDate;
-  });
-
-  const totalOrders = orders.length;
-  const totalRevenue = orders.reduce(
-    (sum, o) => sum + Number(o.total_amount || 0),
-    0
-  );
-  const totalPaid = orders.reduce(
-    (sum, o) => sum + Number(o.paid_amount || 0),
-    0
-  );
-  const totalDue = orders.reduce(
-    (sum, o) => sum + Number(o.remaining_amount || 0),
-    0
-  );
-  const paidOrders = orders.filter(
-    (o) => Number(o.remaining_amount || 0) === 0
-  ).length;
-  const dueOrders = orders.filter(
-    (o) => Number(o.remaining_amount || 0) > 0
-  ).length;
-
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount || 0);
-  };
-
-  const formatDate = (dateValue) => {
-    if (!dateValue) return "-";
-
-    const date = new Date(dateValue);
-    if (Number.isNaN(date.getTime())) return "-";
-
-    return date.toLocaleString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit"
+      let matchDate = true;
+      const orderDate = new Date(o.created_at);
+      const today = new Date();
+      if (dateRange === 'today') matchDate = orderDate.toDateString() === today.toDateString();
+      if (dateRange === 'month') matchDate = orderDate.getMonth() === today.getMonth() && orderDate.getFullYear() === today.getFullYear();
+      
+      return matchSearch && matchStatus && matchDate;
     });
-  };
+  }, [orders, searchTerm, statusFilter, dateRange]);
 
-  const getStatusBadge = (order) => {
-    const remaining = Number(order.remaining_amount || 0);
-    if (remaining === 0) {
-      return { text: "Paid", color: "#16a34a", bg: "#22c55e20" };
-    } else if (remaining === Number(order.total_amount || 0)) {
-      return { text: "Unpaid", color: "#dc2626", bg: "#ef444420" };
-    } else {
-      return { text: "Partial", color: "#b45309", bg: "#f59e0b20" };
-    }
+  const stats = useMemo(() => ({
+    total: orders.reduce((sum, o) => sum + Number(o.total_amount), 0),
+    collected: orders.reduce((sum, o) => sum + Number(o.paid_amount), 0),
+    pending: orders.reduce((sum, o) => sum + Number(o.remaining_amount), 0),
+  }), [orders]);
+
+  const formatCurrency = (val) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0
+    }).format(val || 0);
   };
 
   if (loading) {
     return (
-      <div style={styles.loadingContainer}>
-        <div style={styles.spinner} />
-        <p style={styles.loadingText}>Loading orders...</p>
+      <div style={styles.container}>
+        <Skeleton height="50px" width="300px" className="mb-8" />
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "32px" }}>
+          {Array(3).fill(0).map((_, i) => <Skeleton key={i} height="100px" />)}
+        </div>
+        <Skeleton height="500px" />
       </div>
     );
   }
 
   return (
-    <div style={styles.container}>
-      <style>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-        .order-row {
-          transition: all 0.2s ease;
-        }
-        .order-row:hover {
-          background: #f8fafc;
-          transform: translateY(-1px);
-          box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-        }
-      `}</style>
-
-      <div style={styles.header}>
-        <div>
+    <motion.div 
+      initial={{ opacity: 0, y: 15 }} 
+      animate={{ opacity: 1, y: 0 }} 
+      transition={{ duration: 0.5 }}
+      style={styles.container}
+    >
+      <header style={styles.header}>
+        <div style={styles.titleArea}>
           <h1 style={styles.title}>Orders</h1>
-          <p style={styles.subtitle}>
-            Manage and track all customer orders • {totalOrders} total orders
-          </p>
+          <p style={styles.subtitle}>Sales history, receipts, and fulfillment tracking</p>
         </div>
-      </div>
+        <motion.button 
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => navigate('/create-order')} 
+          style={styles.addBtn}
+        >
+          <Plus size={16} /> New Order
+        </motion.button>
+      </header>
 
+      {/* Stats */}
       <div style={styles.statsGrid}>
         <div style={styles.statCard}>
-          <div style={styles.statIcon}>📦</div>
-          <div>
-            <div style={styles.statLabel}>Total Orders</div>
-            <div style={styles.statValue}>{totalOrders}</div>
+          <div style={{ ...styles.iconBox, background: "rgba(37, 99, 235, 0.08)", color: "#2563EB" }}>
+            <TrendingUp size={20} />
           </div>
-        </div>
-
-        <div style={styles.statCard}>
-          <div style={styles.statIcon}>💰</div>
           <div>
             <div style={styles.statLabel}>Total Revenue</div>
-            <div style={styles.statValue}>{formatCurrency(totalRevenue)}</div>
+            <div style={styles.statValue}>{formatCurrency(stats.total)}</div>
           </div>
         </div>
-
         <div style={styles.statCard}>
-          <div style={styles.statIcon}>✅</div>
+          <div style={{ ...styles.iconBox, background: "rgba(22, 163, 74, 0.08)", color: "#16a34a" }}>
+            <CheckCircle2 size={20} />
+          </div>
           <div>
-            <div style={styles.statLabel}>Paid Orders</div>
-            <div style={styles.statValue}>{paidOrders}</div>
-            <div style={styles.statSubtext}>
-              {formatCurrency(totalPaid)} collected
-            </div>
+            <div style={styles.statLabel}>Collected</div>
+            <div style={styles.statValue}>{formatCurrency(stats.collected)}</div>
           </div>
         </div>
-
         <div style={styles.statCard}>
-          <div style={styles.statIcon}>⏳</div>
+          <div style={{ ...styles.iconBox, background: "rgba(239, 68, 68, 0.08)", color: "#ef4444" }}>
+            <Clock size={20} />
+          </div>
           <div>
-            <div style={styles.statLabel}>Due Orders</div>
-            <div style={styles.statValue}>{dueOrders}</div>
-            <div style={styles.statSubtext}>
-              {formatCurrency(totalDue)} pending
-            </div>
+            <div style={styles.statLabel}>Pending</div>
+            <div style={styles.statValue}>{formatCurrency(stats.pending)}</div>
           </div>
         </div>
       </div>
 
-      <div style={styles.filterContainer}>
-        <div style={styles.searchWrapper}>
-          <span style={styles.searchIcon}>🔍</span>
-          <input
-            type="text"
-            placeholder="Search by Order ID or Customer Name..."
+      {/* Filters */}
+      <div style={styles.filterRow}>
+        <div style={styles.searchBox}>
+          <Search size={16} style={styles.searchIcon} />
+          <input 
+            type="text" 
+            placeholder="Search by order ID or customer..." 
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={e => setSearchTerm(e.target.value)}
             style={styles.searchInput}
           />
-          {searchTerm && (
-            <button
-              onClick={() => setSearchTerm("")}
-              style={styles.clearButton}
-            >
-              ✕
-            </button>
-          )}
         </div>
-
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          style={styles.filterSelect}
-        >
-          <option value="all">All Orders</option>
-          <option value="paid">Paid Only</option>
-          <option value="due">Due Only</option>
-          <option value="partial">Partial Payment</option>
-        </select>
-
-        <select
-          value={dateFilter}
-          onChange={(e) => setDateFilter(e.target.value)}
-          style={styles.filterSelect}
-        >
-          <option value="all">All Time</option>
-          <option value="today">Today</option>
-          <option value="week">This Week</option>
-          <option value="month">This Month</option>
-        </select>
+        <div style={styles.selectBox}>
+          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={styles.select}>
+            <option value="all">All Status</option>
+            <option value="paid">Paid</option>
+            <option value="due">Due</option>
+          </select>
+        </div>
+        <div style={styles.selectBox}>
+          <select value={dateRange} onChange={e => setDateRange(e.target.value)} style={styles.select}>
+            <option value="all">All Time</option>
+            <option value="today">Today</option>
+            <option value="month">This Month</option>
+          </select>
+        </div>
       </div>
 
+      {/* Table */}
       <div style={styles.tableContainer}>
-        <table style={styles.table}>
-          <thead style={styles.tableHead}>
-            <tr>
-              <th style={styles.th}>Order ID</th>
-              <th style={styles.th}>Customer</th>
-              <th style={styles.th}>Created</th>
-              <th style={styles.th}>Total Amount</th>
-              <th style={styles.th}>Paid Amount</th>
-              <th style={styles.th}>Remaining</th>
-              <th style={styles.th}>Status</th>
-              <th style={styles.th}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredOrders.length > 0 ? (
-              filteredOrders.map((order) => {
-                const status = getStatusBadge(order);
-                return (
-                  <tr key={order.id} className="order-row" style={styles.tableRow}>
-                    <td style={styles.td}>
-                      <Link to={`/orders/${order.order_id}`} style={styles.orderLink}>
-                        <span style={styles.orderId}>#{order.order_id}</span>
-                      </Link>
-                    </td>
+        <div style={styles.tableWrap}>
+          <table style={styles.table}>
+            <thead style={styles.thead}>
+              <tr>
+                <th style={styles.th}>Order</th>
+                <th style={styles.th}>Customer</th>
+                <th style={styles.th}>Amount</th>
+                <th style={styles.th}>Status</th>
+                <th style={{ ...styles.th, textAlign: "right" }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredOrders.map((o, i) => {
+                const remaining = Number(o.remaining_amount || 0);
+                const isPaid = remaining === 0;
 
+                return (
+                  <motion.tr 
+                    key={o.id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: i * 0.02 }}
+                    style={styles.tr}
+                    onClick={() => navigate(`/orders/${o.order_id}`)}
+                  >
                     <td style={styles.td}>
-                      <div style={styles.customerInfo}>
-                        <div style={styles.customerAvatar}>
-                          {order.customer_name?.charAt(0).toUpperCase() || "?"}
-                        </div>
-                        <span style={styles.customerName}>
-                          {order.customer_name || "Unknown Customer"}
-                        </span>
+                      <div style={styles.orderCell}>
+                        <div style={styles.idBadge}>#{o.order_id.toString().padStart(5, '0')}</div>
+                        <div style={styles.dateText}>{new Date(o.created_at).toLocaleDateString(undefined, { dateStyle: 'medium' })}</div>
                       </div>
                     </td>
-
                     <td style={styles.td}>
-                      <span style={styles.dateText}>{formatDate(order.created_at)}</span>
+                      <div style={styles.custCell}>
+                        <div style={styles.avatar}>{o.customer_name?.charAt(0)}</div>
+                        <div style={styles.custName}>{o.customer_name}</div>
+                      </div>
                     </td>
-
                     <td style={styles.td}>
-                      <span style={styles.amount}>
-                        {formatCurrency(order.total_amount)}
+                      <div style={styles.amountWrap}>
+                        <div style={styles.mainAmount}>{formatCurrency(o.total_amount)}</div>
+                        {!isPaid && <div style={styles.dueSubtext}>Due: {formatCurrency(remaining)}</div>}
+                      </div>
+                    </td>
+                    <td style={styles.td}>
+                      <span style={{ 
+                        ...styles.statusBadge, 
+                        background: isPaid ? "rgba(22, 163, 74, 0.08)" : "rgba(245, 158, 11, 0.08)",
+                        color: isPaid ? "#16a34a" : "#f59e0b"
+                      }}>
+                        {isPaid ? "Paid" : "Due"}
                       </span>
                     </td>
-
-                    <td style={styles.td}>
-                      <span style={styles.paidAmount}>
-                        {formatCurrency(order.paid_amount)}
-                      </span>
-                    </td>
-
-                    <td style={styles.td}>
-                      <span
-                        style={{
-                          ...styles.remainingAmount,
-                          color:
-                            Number(order.remaining_amount) > 0
-                              ? "#dc2626"
-                              : "#16a34a"
-                        }}
+                    <td style={{ ...styles.td, textAlign: "right" }}>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); navigate(`/orders/${o.order_id}`); }} 
+                        style={styles.viewBtn}
                       >
-                        {formatCurrency(order.remaining_amount)}
-                      </span>
-                    </td>
-
-                    <td style={styles.td}>
-                      <span
-                        style={{
-                          ...styles.statusBadge,
-                          backgroundColor: status.bg,
-                          color: status.color
-                        }}
-                      >
-                        {status.text}
-                      </span>
-                    </td>
-
-                    <td style={styles.td}>
-                      <Link to={`/orders/${order.order_id}`} style={styles.viewButton}>
-                        View Details
-                        <span style={styles.viewIcon}>→</span>
-                      </Link>
-                    </td>
-                  </tr>
-                );
-              })
-            ) : (
-              <tr>
-                <td colSpan="8" style={styles.noData}>
-                  {searchTerm || statusFilter !== "all" || dateFilter !== "all" ? (
-                    <div>
-                      <p style={styles.noDataText}>No orders match your filters</p>
-                      <button
-                        onClick={() => {
-                          setSearchTerm("");
-                          setStatusFilter("all");
-                          setDateFilter("all");
-                        }}
-                        style={styles.clearFiltersButton}
-                      >
-                        Clear All Filters
+                        View <ChevronRight size={12} />
                       </button>
-                    </div>
-                  ) : (
-                    <div>
-                      <p style={styles.noDataText}>No orders found</p>
-                    </div>
-                  )}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {filteredOrders.length > 0 && (
-        <div style={styles.footer}>
-          <div style={styles.resultsInfo}>
-            Showing {filteredOrders.length} of {totalOrders} orders
-            {(searchTerm || statusFilter !== "all" || dateFilter !== "all") && (
-              <button
-                onClick={() => {
-                  setSearchTerm("");
-                  setStatusFilter("all");
-                  setDateFilter("all");
-                }}
-                style={styles.clearAllButton}
-              >
-                Clear filters
-              </button>
-            )}
-          </div>
-
-          <div style={styles.summaryStats}>
-            <div style={styles.summaryItem}>
-              <span>Page Total:</span>
-              <strong>
-                {formatCurrency(
-                  filteredOrders.reduce(
-                    (sum, o) => sum + Number(o.total_amount || 0),
-                    0
-                  )
-                )}
-              </strong>
+                    </td>
+                  </motion.tr>
+                );
+              })}
+            </tbody>
+          </table>
+          {filteredOrders.length === 0 && (
+            <div style={styles.emptyStateContainer}>
+              <Receipt size={48} style={{ opacity: 0.1, marginBottom: "16px" }} />
+              <h3 style={{ margin: "0 0 4px", color: "#0F172A", fontSize: "16px", fontWeight: "600" }}>No orders found</h3>
+              <p style={{ margin: 0, color: "#94a3b8", fontSize: "14px" }}>Adjust filters or create a new order.</p>
             </div>
-            <div style={styles.summaryItem}>
-              <span>Page Paid:</span>
-              <strong style={{ color: "#16a34a" }}>
-                {formatCurrency(
-                  filteredOrders.reduce(
-                    (sum, o) => sum + Number(o.paid_amount || 0),
-                    0
-                  )
-                )}
-              </strong>
-            </div>
-            <div style={styles.summaryItem}>
-              <span>Page Due:</span>
-              <strong style={{ color: "#dc2626" }}>
-                {formatCurrency(
-                  filteredOrders.reduce(
-                    (sum, o) => sum + Number(o.remaining_amount || 0),
-                    0
-                  )
-                )}
-              </strong>
-            </div>
-          </div>
+          )}
         </div>
-      )}
-    </div>
+      </div>
+    </motion.div>
   );
 }
 
 const styles = {
-  container: {
-    padding: "32px",
-    maxWidth: "1400px",
-    margin: "0 auto",
-    background: "#f8fafc",
-    minHeight: "100vh"
-  },
-  loadingContainer: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: "60vh",
-    gap: "16px"
-  },
-  spinner: {
-    width: "48px",
-    height: "48px",
-    border: "4px solid #e2e8f0",
-    borderTop: "4px solid #3b82f6",
-    borderRadius: "50%",
-    animation: "spin 1s linear infinite"
-  },
-  loadingText: {
-    color: "#64748b",
-    fontSize: "16px"
-  },
-  header: {
-    marginBottom: "32px"
-  },
-  title: {
-    fontSize: "32px",
-    fontWeight: "700",
-    color: "#0f172a",
-    margin: "0 0 8px 0",
-    letterSpacing: "-0.02em"
-  },
-  subtitle: {
-    color: "#475569",
-    fontSize: "16px",
-    margin: 0
-  },
-  statsGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-    gap: "20px",
-    marginBottom: "32px"
-  },
-  statCard: {
-    background: "white",
-    padding: "20px",
-    borderRadius: "16px",
-    display: "flex",
-    alignItems: "center",
-    gap: "16px",
-    boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
-    border: "1px solid #e2e8f0"
-  },
-  statIcon: {
-    fontSize: "32px",
-    width: "48px",
-    height: "48px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    background: "#f1f5f9",
-    borderRadius: "12px"
-  },
-  statLabel: {
-    fontSize: "14px",
-    color: "#64748b",
-    marginBottom: "4px"
-  },
-  statValue: {
-    fontSize: "24px",
-    fontWeight: "600",
-    color: "#0f172a",
-    lineHeight: "1.2"
-  },
-  statSubtext: {
-    fontSize: "12px",
-    color: "#64748b",
-    marginTop: "2px"
-  },
-  filterContainer: {
-    display: "flex",
-    gap: "16px",
-    marginBottom: "24px",
-    flexWrap: "wrap"
-  },
-  searchWrapper: {
-    position: "relative",
-    flex: "2",
-    minWidth: "300px"
-  },
-  searchIcon: {
-    position: "absolute",
-    left: "12px",
-    top: "50%",
-    transform: "translateY(-50%)",
-    fontSize: "16px",
-    color: "#64748b"
-  },
-  searchInput: {
-    width: "100%",
-    padding: "14px 20px 14px 44px",
-    border: "1px solid #e2e8f0",
-    borderRadius: "16px",
-    fontSize: "15px",
-    outline: "none",
-    transition: "all 0.2s ease",
-    background: "white",
-    boxShadow: "0 2px 4px rgba(0,0,0,0.02)"
-  },
-  clearButton: {
-    position: "absolute",
-    right: "12px",
-    top: "50%",
-    transform: "translateY(-50%)",
-    background: "none",
-    border: "none",
-    color: "#64748b",
-    cursor: "pointer",
-    fontSize: "16px",
-    padding: "4px 8px"
-  },
-  filterSelect: {
-    padding: "14px 24px",
-    border: "1px solid #e2e8f0",
-    borderRadius: "16px",
-    fontSize: "15px",
-    outline: "none",
-    background: "white",
-    color: "#1e293b",
-    cursor: "pointer",
-    minWidth: "150px"
-  },
-  tableContainer: {
-    background: "white",
-    borderRadius: "20px",
-    overflow: "hidden",
-    boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
-    border: "1px solid #e2e8f0"
-  },
-  table: {
-    width: "100%",
-    borderCollapse: "collapse"
-  },
-  tableHead: {
-    background: "#f8fafc",
-    borderBottom: "2px solid #e2e8f0"
-  },
-  th: {
-    padding: "16px",
-    textAlign: "left",
-    fontSize: "13px",
-    fontWeight: "600",
-    color: "#475569",
-    textTransform: "uppercase",
-    letterSpacing: "0.5px"
-  },
-  tableRow: {
-    borderBottom: "1px solid #e2e8f0",
-    cursor: "pointer"
-  },
-  td: {
-    padding: "16px",
-    fontSize: "14px",
-    color: "#1e293b"
-  },
-  orderLink: {
-    textDecoration: "none",
-    color: "inherit"
-  },
-  orderId: {
-    fontFamily: "monospace",
-    fontSize: "14px",
-    fontWeight: "600",
-    color: "#3b82f6",
-    background: "#eff6ff",
-    padding: "4px 8px",
-    borderRadius: "6px"
-  },
-  customerInfo: {
-    display: "flex",
-    alignItems: "center",
-    gap: "12px"
-  },
-  customerAvatar: {
-    width: "32px",
-    height: "32px",
-    background: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
-    borderRadius: "8px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    color: "white",
-    fontSize: "14px",
-    fontWeight: "600"
-  },
-  customerName: {
-    fontWeight: "500"
-  },
-  dateText: {
-    color: "#475569",
-    fontSize: "13px",
-    whiteSpace: "nowrap"
-  },
-  amount: {
-    fontWeight: "600",
-    color: "#0f172a"
-  },
-  paidAmount: {
-    fontWeight: "500",
-    color: "#16a34a"
-  },
-  remainingAmount: {
-    fontWeight: "600"
-  },
-  statusBadge: {
-    padding: "4px 12px",
-    borderRadius: "20px",
-    fontSize: "12px",
-    fontWeight: "500",
-    display: "inline-block"
-  },
-  viewButton: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "4px",
-    padding: "6px 12px",
-    background: "#f1f5f9",
-    borderRadius: "8px",
-    color: "#475569",
-    textDecoration: "none",
-    fontSize: "13px",
-    fontWeight: "500",
-    transition: "all 0.2s ease"
-  },
-  viewIcon: {
-    fontSize: "16px",
-    transition: "transform 0.2s ease"
-  },
-  noData: {
-    padding: "48px",
-    textAlign: "center"
-  },
-  noDataText: {
-    color: "#64748b",
-    fontSize: "16px",
-    marginBottom: "16px"
-  },
-  clearFiltersButton: {
-    padding: "8px 16px",
-    background: "#f1f5f9",
-    border: "1px solid #e2e8f0",
-    borderRadius: "8px",
-    fontSize: "14px",
-    color: "#475569",
-    cursor: "pointer"
-  },
-  footer: {
-    marginTop: "20px",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    flexWrap: "wrap",
-    gap: "16px"
-  },
-  resultsInfo: {
-    padding: "12px 16px",
-    background: "white",
-    borderRadius: "12px",
-    fontSize: "14px",
-    color: "#64748b",
-    display: "flex",
-    alignItems: "center",
-    gap: "16px",
-    border: "1px solid #e2e8f0"
-  },
-  clearAllButton: {
-    padding: "4px 12px",
-    background: "#f1f5f9",
-    border: "1px solid #e2e8f0",
-    borderRadius: "6px",
-    fontSize: "12px",
-    color: "#475569",
-    cursor: "pointer"
-  },
-  summaryStats: {
-    display: "flex",
-    gap: "20px",
-    padding: "12px 20px",
-    background: "white",
-    borderRadius: "12px",
-    border: "1px solid #e2e8f0"
-  },
-  summaryItem: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    fontSize: "14px",
-    color: "#64748b"
-  }
+  container: { padding: "24px 0 40px" },
+  header: { display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "24px", flexWrap: "wrap", gap: "20px" },
+  titleArea: { flex: 1 },
+  title: { fontSize: "28px", fontWeight: "800", color: "#0F172A", margin: "0 0 4px", letterSpacing: "-0.5px" },
+  subtitle: { color: "#64748b", fontSize: "14px", fontWeight: "400" },
+  addBtn: { display: "flex", alignItems: "center", gap: "8px", padding: "10px 20px", background: "#2563EB", color: "#fff", border: "none", borderRadius: "10px", cursor: "pointer", fontWeight: "600", fontSize: "13px", boxShadow: "0 2px 8px rgba(37, 99, 235, 0.25)", fontFamily: "inherit" },
+
+  statsGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px", marginBottom: "24px" },
+  statCard: { display: "flex", alignItems: "center", gap: "16px", padding: "20px 24px", background: "#fff", border: "1px solid #e2e8f0", borderRadius: "14px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" },
+  iconBox: { width: "44px", height: "44px", borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  statLabel: { fontSize: "12px", fontWeight: "500", color: "#94a3b8", marginBottom: "2px" },
+  statValue: { fontSize: "22px", fontWeight: "800", color: "#0F172A", letterSpacing: "-0.5px" },
+
+  filterRow: { display: "flex", gap: "12px", marginBottom: "20px", flexWrap: "wrap" },
+  searchBox: { position: "relative", flex: 2, minWidth: "250px" },
+  searchIcon: { position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", color: "#94a3b8" },
+  searchInput: { width: "100%", padding: "10px 14px 10px 40px", borderRadius: "10px", border: "1px solid #e2e8f0", outline: "none", fontSize: "13px", background: "#fff", color: "#0F172A", fontWeight: "400", fontFamily: "inherit" },
+  selectBox: { position: "relative", flex: 1, minWidth: "160px" },
+  select: { width: "100%", padding: "10px 14px", borderRadius: "10px", border: "1px solid #e2e8f0", outline: "none", fontSize: "13px", background: "#fff", appearance: "none", cursor: "pointer", fontWeight: "500", color: "#475569", fontFamily: "inherit" },
+
+  tableContainer: { borderRadius: "16px", border: "1px solid #e2e8f0", background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.04)", overflow: "hidden" },
+  tableWrap: { overflowX: "auto" },
+  table: { width: "100%", borderCollapse: "collapse", minWidth: "800px" },
+  thead: { background: "#F8FAFC", borderBottom: "1px solid #e2e8f0" },
+  th: { textAlign: "left", padding: "14px 20px", fontSize: "11px", fontWeight: "600", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.5px" },
+  tr: { borderBottom: "1px solid #f1f5f9", background: "#fff", transition: "all 0.15s", cursor: "pointer" },
+  td: { padding: "16px 20px", verticalAlign: "middle", fontSize: "13px" },
+
+  orderCell: { display: "flex", flexDirection: "column", gap: "4px" },
+  idBadge: { background: "#F8FAFC", color: "#2563EB", padding: "4px 10px", borderRadius: "6px", fontWeight: "600", fontSize: "13px", width: "fit-content", border: "1px solid #e2e8f0" },
+  dateText: { fontSize: "11px", color: "#94a3b8", fontWeight: "500" },
+
+  custCell: { display: "flex", alignItems: "center", gap: "12px" },
+  avatar: { width: "36px", height: "36px", background: "rgba(37, 99, 235, 0.08)", color: "#2563EB", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "700", fontSize: "15px" },
+  custName: { fontWeight: "600", color: "#0F172A", fontSize: "14px" },
+
+  amountWrap: { display: "flex", flexDirection: "column", gap: "2px" },
+  mainAmount: { fontWeight: "700", color: "#0F172A", fontSize: "15px" },
+  dueSubtext: { fontSize: "11px", color: "#ef4444", fontWeight: "500" },
+
+  statusBadge: { padding: "4px 12px", borderRadius: "6px", fontSize: "11px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.3px" },
+  viewBtn: { display: "flex", alignItems: "center", gap: "6px", padding: "8px 14px", background: "#F8FAFC", border: "1px solid #e2e8f0", borderRadius: "8px", color: "#475569", fontWeight: "500", fontSize: "12px", cursor: "pointer", fontFamily: "inherit" },
+
+  emptyStateContainer: { padding: "80px 40px", textAlign: "center" }
 };
 
 export default Orders;

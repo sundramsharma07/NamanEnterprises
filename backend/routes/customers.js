@@ -43,28 +43,9 @@ router.get("/phone/:phone", (req, res) => {
   });
 });
 
-// GET CUSTOMER BY ID
-router.get("/:id", (req, res) => {
-  const sql = "SELECT * FROM customers WHERE id = ?";
-
-  db.get(sql, [req.params.id], (err, row) => {
-    if (err) {
-      return res.status(500).json({
-        success: false,
-        message: "Database error"
-      });
-    }
-
-    if (!row) {
-      return res.status(404).json({
-        success: false,
-        message: "Customer not found"
-      });
-    }
-
-    res.json(row);
-  });
-});
+// GET CUSTOMER BY ID (Full Profile including ledger, notes, etc.)
+const customerController = require("../controllers/customerController");
+router.get("/:id", customerController.getCustomerById);
 
 // ADD CUSTOMER
 router.post("/", (req, res) => {
@@ -346,5 +327,16 @@ router.delete("/:id", (req, res) => {
     }
   );
 });
+
+// DUE ROUTING AND CONTROLLERS
+const notesController = require("../controllers/notesController");
+
+router.post("/:id/due", customerController.validateDue, customerController.addDue);
+router.post("/:id/pay-due", customerController.validateDue, customerController.payDue);
+
+router.get("/:id/notes", notesController.getCustomerNotes);
+router.post("/:id/notes", notesController.validateNote, notesController.addNote);
+
+router.delete("/notes/:note_id", notesController.deleteNote);
 
 module.exports = router;

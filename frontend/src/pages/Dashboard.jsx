@@ -1,5 +1,18 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import api from "../services/api";
+import { 
+  Users, 
+  Package, 
+  ShoppingCart, 
+  IndianRupee, 
+  TrendingUp, 
+  Activity,
+  Download,
+  AlertTriangle,
+  ArrowUpRight
+} from "lucide-react";
+import { Skeleton, Card } from "../components/ui";
+import { motion, AnimatePresence } from "framer-motion";
 
 function Dashboard() {
   const [stats, setStats] = useState({
@@ -12,63 +25,56 @@ function Dashboard() {
   });
 
   const [loading, setLoading] = useState(true);
-  const [hoveredCard, setHoveredCard] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState(new Date());
-  const [recentActivity, setRecentActivity] = useState([]);
-  const [timeRange, setTimeRange] = useState("today");
+  const [dailyActivity, setDailyActivity] = useState([]);
+  const [recentOrders, setRecentOrders] = useState([]);
 
   const fetchStats = useCallback(async () => {
     try {
       setRefreshing(true);
 
-      const [customersRes, productsRes, ordersRes] = await Promise.all([
+      const [customersRes, productsRes, ordersRes, duesRes] = await Promise.all([
         api.get("/customers"),
         api.get("/products"),
-        api.get("/orders")
+        api.get("/orders"),
+        api.get("/activity-pulse")
       ]);
 
-      const customersData = Array.isArray(customersRes.data) ? customersRes.data : [];
-      const productsData = Array.isArray(productsRes.data) ? productsRes.data : [];
-      const ordersData = Array.isArray(ordersRes.data?.orders) ? ordersRes.data.orders : [];
+      const customersData = customersRes.data || [];
+      const productsData = productsRes.data || [];
+      const ordersData = ordersRes.data?.orders || [];
+      const dueHistory = duesRes.data || [];
 
       let totalDue = 0;
       let totalPaid = 0;
       let totalRevenue = 0;
 
       ordersData.forEach((order) => {
-        const due = Number(order?.remaining_amount || 0);
-        const paid = Number(order?.paid_amount || 0);
-        totalDue += due;
-        totalPaid += paid;
+        totalDue += Number(order?.remaining_amount || 0);
+        totalPaid += Number(order?.paid_amount || 0);
         totalRevenue += Number(order?.total_amount || 0);
       });
 
-      const recentOrders = ordersData.slice(0, 5).map((order) => {
-        const createdAt = order?.created_at ? new Date(order.created_at) : null;
-        const remaining = Number(order?.remaining_amount || 0);
-        const total = Number(order?.total_amount || 0);
+      // Today's Pulse Activity + Stock Alerts
+      const todayString = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+      const lowStockAlerts = productsData
+        .filter(p => Number(p.stock) < 10)
+        .map(p => ({ 
+          type: 'stock', 
+          title: `Low Stock: ${p.name}`, 
+          sub: `Only ${p.stock} ${p.unit} remaining`, 
+          time: new Date().toISOString() 
+        }));
 
-        let derivedStatus = "pending";
-        if (remaining === 0) {
-          derivedStatus = "completed";
-        } else if (remaining > 0 && remaining < total) {
-          derivedStatus = "partial";
-        } else if (remaining === total) {
-          derivedStatus = "unpaid";
-        }
-
-        return {
-          id: order?.order_id || order?.id || "N/A",
-          customer: order?.customer_name || "Unknown Customer",
-          amount: Number(order?.total_amount || 0),
-          status: derivedStatus,
-          time:
-            createdAt && !Number.isNaN(createdAt.getTime())
-              ? createdAt.toLocaleTimeString("en-IN")
-              : "-"
-        };
-      });
+      const todayActivity = [
+        ...ordersData
+          .filter(o => o.created_at?.startsWith(todayString))
+          .map(o => ({ type: 'order', title: `New Order: ₹${o.total_amount}`, sub: o.customer_name, time: o.created_at })),
+        ...dueHistory
+          .filter(h => h.created_at?.startsWith(todayString) && h.type === 'PAID_DUE')
+          .map(h => ({ type: 'payment', title: `Payment: ₹${h.amount}`, sub: `Reference Order ID: ${h.order_id || 'N/A'}`, time: h.created_at })),
+        ...lowStockAlerts
+      ].sort((a, b) => new Date(b.time) - new Date(a.time)).slice(0, 8);
 
       setStats({
         customers: customersData.length,
@@ -79,20 +85,10 @@ function Dashboard() {
         totalRevenue
       });
 
-      setRecentActivity(recentOrders);
-      setLastUpdated(new Date());
+      setDailyActivity(todayActivity);
+      setRecentOrders(ordersData.slice(0, 5));
     } catch (err) {
-      console.error("Dashboard load failed", err);
-
-      setStats({
-        customers: 0,
-        products: 0,
-        orders: 0,
-        due: 0,
-        paid: 0,
-        totalRevenue: 0
-      });
-      setRecentActivity([]);
+      console.error("Dashboard error:", err);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -101,8 +97,7 @@ function Dashboard() {
 
   useEffect(() => {
     fetchStats();
-
-    const interval = setInterval(fetchStats, 30000);
+    const interval = setInterval(fetchStats, 60000);
     return () => clearInterval(interval);
   }, [fetchStats]);
 
@@ -110,754 +105,285 @@ function Dashboard() {
     return new Intl.NumberFormat("en-IN", {
       style: "currency",
       currency: "INR",
-      minimumFractionDigits: 0,
       maximumFractionDigits: 0
-    }).format(Number(num || 0));
+    }).format(num || 0);
   };
 
-  const formatNumber = (num) => {
-    return new Intl.NumberFormat("en-IN").format(Number(num || 0));
+  const handleBackup = async () => {
+    try {
+      const response = await api.get("/admin/backup/download", { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `naman-backup-${new Date().toLocaleDateString()}.db`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      console.error("Backup failure:", err);
+      alert("Backup download failed. Ensure you are authorized.");
+    }
+
   };
 
-  const getCardIcon = (type) => {
-    const icons = {
-      customers: (
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-          <circle cx="12" cy="7" r="4"></circle>
-        </svg>
-      ),
-      products: (
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
-          <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
-        </svg>
-      ),
-      orders: (
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
-          <line x1="3" y1="6" x2="21" y2="6"></line>
-          <path d="M16 10a4 4 0 0 1-8 0"></path>
-        </svg>
-      ),
-      due: (
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="2" y="5" width="20" height="14" rx="2"></rect>
-          <line x1="2" y1="10" x2="22" y2="10"></line>
-        </svg>
-      ),
-      revenue: (
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="12" y1="1" x2="12" y2="23"></line>
-          <path d="M17 5H9.5M17 5a3 3 0 0 1 0 6h-5M17 5a3 3 0 0 0 0 6h-5M7 19h10M7 19a3 3 0 0 1 0-6h10M7 19a3 3 0 0 0 0-6h10"></path>
-        </svg>
-      )
-    };
-    return icons[type] || null;
-  };
-
-  const getCardColor = (type) => {
-    const colors = {
-      customers: { bg: "linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)", icon: "#1976d2", text: "#0d47a1" },
-      products: { bg: "linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%)", icon: "#2e7d32", text: "#1b5e20" },
-      orders: { bg: "linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%)", icon: "#ed6c02", text: "#b85c00" },
-      due: { bg: "linear-gradient(135deg, #fce4e4 0%, #ffcdd2 100%)", icon: "#d32f2f", text: "#b71c1c" },
-      revenue: { bg: "linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%)", icon: "#7b1fa2", text: "#4a148c" }
-    };
-    return colors[type] || colors.customers;
-  };
-
-  const StatCard = ({ type, value, label, index }) => {
-    const colors = getCardColor(type);
-    const isHovered = hoveredCard === type;
-
-    return (
-      <div
-        className="stat-card"
-        style={{
-          padding: "24px",
-          border: "none",
-          borderRadius: "20px",
-          minWidth: "240px",
-          flex: "1 1 auto",
-          textAlign: "left",
-          background: colors.bg,
-          boxShadow: isHovered
-            ? "0 20px 25px -5px rgba(0,0,0,0.2), 0 10px 10px -5px rgba(0,0,0,0.1)"
-            : "0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)",
-          transform: isHovered ? "translateY(-4px) scale(1.02)" : "translateY(0) scale(1)",
-          transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-          cursor: "pointer",
-          position: "relative",
-          overflow: "hidden",
-          animation: `slideIn 0.5s ease forwards ${index * 0.1}s`,
-          opacity: 0,
-          transformOrigin: "center"
-        }}
-        onMouseEnter={() => setHoveredCard(type)}
-        onMouseLeave={() => setHoveredCard(null)}
-        onClick={() => console.log(`${type} card clicked`)}
-      >
-        <div
-          style={{
-            position: "absolute",
-            top: -20,
-            right: -20,
-            width: 120,
-            height: 120,
-            background: `radial-gradient(circle, ${colors.icon}15 0%, transparent 70%)`,
-            borderRadius: "50%"
-          }}
-        />
-
-        <div
-          style={{
-            position: "absolute",
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: "4px",
-            background: `linear-gradient(90deg, ${colors.icon} 0%, ${colors.icon}80 100%)`,
-            transform: isHovered ? "scaleX(1)" : "scaleX(0)",
-            transition: "transform 0.3s ease",
-            transformOrigin: "left"
-          }}
-        />
-
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-            marginBottom: "16px"
-          }}
-        >
-          <div
-            style={{
-              color: colors.icon,
-              transform: isHovered ? "scale(1.1) rotate(5deg)" : "scale(1) rotate(0)",
-              transition: "transform 0.3s ease"
-            }}
-          >
-            {getCardIcon(type)}
-          </div>
-
-          <div
-            style={{
-              background: `${colors.icon}20`,
-              padding: "4px 8px",
-              borderRadius: "20px",
-              fontSize: "12px",
-              fontWeight: "600",
-              color: colors.icon
-            }}
-          >
-            +{Math.floor(Math.random() * 20)}%
-          </div>
-        </div>
-
-        <div style={{ marginBottom: "8px" }}>
-          <span
-            style={{
-              fontSize: "32px",
-              fontWeight: "700",
-              color: colors.text,
-              lineHeight: "1.2"
-            }}
-          >
-            {type === "due" || type === "revenue" || type === "paid"
-              ? formatCurrency(value)
-              : formatNumber(value)}
-          </span>
-        </div>
-
-        <h3
-          style={{
-            margin: "0 0 4px 0",
-            fontSize: "14px",
-            fontWeight: "500",
-            color: colors.icon,
-            textTransform: "uppercase",
-            letterSpacing: "0.5px"
-          }}
-        >
-          {label}
-        </h3>
-
-        <div
-          style={{
-            marginTop: "16px",
-            height: "4px",
-            background: `${colors.icon}30`,
-            borderRadius: "2px",
-            overflow: "hidden"
-          }}
-        >
-          <div
-            style={{
-              width: `${Math.random() * 40 + 60}%`,
-              height: "100%",
-              background: colors.icon,
-              borderRadius: "2px",
-              transition: "width 0.3s ease"
-            }}
-          />
-        </div>
-      </div>
-    );
-  };
-
-  const collectionEfficiency =
-    stats.totalRevenue > 0 ? ((stats.paid / stats.totalRevenue) * 100).toFixed(1) : "0.0";
-
-  const averageOrderValue =
-    stats.orders > 0 ? stats.totalRevenue / stats.orders : 0;
+  const dashCards = useMemo(() => [
+    { 
+      label: "Total Revenue", 
+      value: stats.totalRevenue, 
+      icon: IndianRupee, 
+      iconBg: "rgba(37, 99, 235, 0.08)",
+      iconColor: "#2563EB",
+      detail: "Cumulative Sales" 
+    },
+    { 
+      label: "Balance Due", 
+      value: stats.due, 
+      icon: AlertTriangle, 
+      iconBg: "rgba(239, 68, 68, 0.08)",
+      iconColor: "#ef4444",
+      detail: "Pending Recovery" 
+    },
+    { 
+      label: "Inventory", 
+      value: stats.products, 
+      icon: Package, 
+      iconBg: "rgba(22, 163, 74, 0.08)",
+      iconColor: "#16a34a",
+      detail: "Active Stock Items" 
+    },
+    { 
+      label: "Customer Base", 
+      value: stats.customers, 
+      icon: Users, 
+      iconBg: "rgba(56, 189, 248, 0.08)",
+      iconColor: "#38BDF8",
+      detail: "Total Customers" 
+    }
+  ], [stats]);
 
   if (loading) {
     return (
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          minHeight: "60vh",
-          flexDirection: "column",
-          gap: "24px"
-        }}
-      >
-        <div
-          style={{
-            width: "56px",
-            height: "56px",
-            border: "4px solid #e2e8f0",
-            borderTop: "4px solid #3b82f6",
-            borderRadius: "50%",
-            animation: "spin 1s linear infinite"
-          }}
-        />
-        <div style={{ textAlign: "center" }}>
-          <p style={{ color: "#1e293b", fontSize: "18px", fontWeight: "500", margin: "0 0 8px 0" }}>
-            Loading your dashboard
-          </p>
-          <p style={{ color: "#64748b", fontSize: "14px", margin: 0 }}>
-            Fetching latest data...
-          </p>
+      <div style={{ padding: "32px 0" }}>
+        <Skeleton width="300px" height="40px" className="mb-8" />
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "20px", marginBottom: "40px" }}>
+          {Array(4).fill(0).map((_, i) => <Skeleton key={i} height="140px" borderRadius="16px" />)}
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1.5fr", gap: "20px" }}>
+          <Skeleton height="400px" borderRadius="16px" />
+          <Skeleton height="400px" borderRadius="16px" />
         </div>
       </div>
     );
   }
 
   return (
-    <div
-      style={{
-        padding: "32px",
-        maxWidth: "1440px",
-        margin: "0 auto",
-        background: "#f8fafc",
-        minHeight: "100vh"
-      }}
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }} 
+      animate={{ opacity: 1, y: 0 }} 
+      transition={{ duration: 0.5 }}
+      style={styles.container}
     >
-      <style>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-
-        @keyframes slideIn {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
-        }
-
-        .stat-card {
-          backdrop-filter: blur(10px);
-        }
-
-        .refresh-button:active {
-          transform: scale(0.95);
-        }
-      `}</style>
-
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "32px",
-          flexWrap: "wrap",
-          gap: "16px"
-        }}
-      >
-        <div>
-          <h1
-            style={{
-              fontSize: "36px",
-              fontWeight: "700",
-              color: "#0f172a",
-              margin: "0 0 8px 0",
-              letterSpacing: "-0.02em"
-            }}
-          >
-            Dashboard
-          </h1>
-          <p
-            style={{
-              color: "#475569",
-              fontSize: "16px",
-              margin: 0,
-              display: "flex",
-              alignItems: "center",
-              gap: "8px"
-            }}
-          >
-            <span>Welcome back! Here's your business overview</span>
-            <span
-              style={{
-                display: "inline-block",
-                width: "8px",
-                height: "8px",
-                background: "#22c55e",
-                borderRadius: "50%",
-                animation: "pulse 2s ease infinite"
-              }}
-            />
-          </p>
+      <header style={styles.header}>
+        <div style={styles.titleArea}>
+          <h1 style={styles.title}>Dashboard</h1>
+          <p style={styles.subtitle}>Welcome to Naman Enterprises management portal</p>
         </div>
-
-        <div
-          style={{
-            display: "flex",
-            gap: "12px",
-            alignItems: "center"
-          }}
-        >
-          <select
-            value={timeRange}
-            onChange={(e) => setTimeRange(e.target.value)}
-            style={{
-              padding: "10px 16px",
-              background: "#fff",
-              border: "1px solid #e2e8f0",
-              borderRadius: "12px",
-              fontSize: "14px",
-              color: "#1e293b",
-              cursor: "pointer",
-              outline: "none"
-            }}
+        <div style={styles.actions}>
+          <motion.button 
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleBackup} 
+            style={styles.secondaryBtn}
           >
-            <option value="today">Today</option>
-            <option value="week">This Week</option>
-            <option value="month">This Month</option>
-          </select>
-
-          <button
-            onClick={fetchStats}
-            disabled={refreshing}
-            className="refresh-button"
-            style={{
-              padding: "10px 20px",
-              background: "#fff",
-              border: "1px solid #e2e8f0",
-              borderRadius: "12px",
-              fontSize: "14px",
-              fontWeight: "500",
-              color: "#1e293b",
-              cursor: refreshing ? "wait" : "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
-              transition: "all 0.2s ease"
-            }}
-            onMouseEnter={(e) => !refreshing && (e.currentTarget.style.background = "#f8fafc")}
-            onMouseLeave={(e) => !refreshing && (e.currentTarget.style.background = "#fff")}
+            <Download size={16} /> Backup
+          </motion.button>
+          <motion.button 
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={fetchStats} 
+            disabled={refreshing} 
+            style={styles.primaryBtn}
           >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              style={{
-                animation: refreshing ? "spin 1s linear infinite" : "none"
-              }}
-            >
-              <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-            </svg>
-            {refreshing ? "Refreshing..." : "Refresh"}
-          </button>
+            <Activity size={16} className={refreshing ? "spin" : ""} />
+            {refreshing ? "Syncing..." : "Refresh"}
+          </motion.button>
         </div>
+      </header>
+
+      {/* Stats Grid */}
+      <div style={styles.statsGrid}>
+        {dashCards.map((card, i) => (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.08 }}
+          >
+            <div style={styles.statCard}>
+              <div style={styles.statHeader}>
+                <div style={{ 
+                  ...styles.iconBox, 
+                  background: card.iconBg,
+                  color: card.iconColor,
+                }}>
+                  <card.icon size={22} />
+                </div>
+              </div>
+              <div style={styles.statBody}>
+                <h2 style={styles.cardValue}>
+                  {card.label.includes("Revenue") || card.label.includes("Due") ? formatCurrency(card.value) : card.value}
+                </h2>
+                <div style={styles.cardLabel}>{card.label}</div>
+                <div style={styles.cardDetail}>{card.detail}</div>
+              </div>
+            </div>
+          </motion.div>
+        ))}
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-          gap: "24px",
-          marginBottom: "32px"
-        }}
-      >
-        <StatCard type="customers" value={stats.customers} label="Total Customers" index={0} />
-        <StatCard type="products" value={stats.products} label="Active Products" index={1} />
-        <StatCard type="orders" value={stats.orders} label="Total Orders" index={2} />
-        <StatCard type="revenue" value={stats.totalRevenue} label="Total Revenue" index={3} />
-        <StatCard type="due" value={stats.due} label="Pending Dues" index={4} />
-      </div>
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "2fr 1fr",
-          gap: "24px",
-          marginTop: "32px"
-        }}
-      >
-        <div
-          style={{
-            background: "#fff",
-            borderRadius: "20px",
-            padding: "24px",
-            boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
-            border: "1px solid #e2e8f0"
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "20px"
-            }}
-          >
-            <h3
-              style={{
-                fontSize: "18px",
-                fontWeight: "600",
-                color: "#0f172a",
-                margin: 0
-              }}
-            >
-              Recent Activity
-            </h3>
-            <span
-              style={{
-                fontSize: "14px",
-                color: "#64748b"
-              }}
-            >
-              Last 5 orders
-            </span>
+      <div style={styles.mainGrid}>
+        {/* Today's Pulse Activity Feed */}
+        <div style={styles.pulseCard}>
+          <div style={styles.secHeader}>
+            <div style={styles.pulseIndicator}>
+              <div style={styles.pulseDot} />
+            </div>
+            <h3 style={styles.secTitle}>Today's Activity</h3>
           </div>
-
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "12px"
-            }}
-          >
-            {recentActivity.length > 0 ? (
-              recentActivity.map((activity, index) => (
-                <div
-                  key={`${activity.id}-${index}`}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    padding: "12px",
-                    background: "#f8fafc",
-                    borderRadius: "12px",
-                    animation: `slideIn 0.3s ease forwards ${index * 0.05}s`,
-                    opacity: 0
-                  }}
-                >
-                  <div>
-                    <div
-                      style={{
-                        fontWeight: "600",
-                        color: "#0f172a",
-                        marginBottom: "4px"
-                      }}
-                    >
-                      {activity.customer}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: "13px",
-                        color: "#64748b"
-                      }}
-                    >
-                      Order #{activity.id} • {activity.time}
-                    </div>
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "12px"
-                    }}
+          <div style={styles.activityList}>
+            <AnimatePresence>
+              {dailyActivity.length > 0 ? (
+                dailyActivity.map((act, i) => (
+                  <motion.div 
+                    key={i} 
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.3 + (i * 0.05) }}
+                    style={styles.actItem}
                   >
-                    <span
-                      style={{
-                        fontWeight: "600",
-                        color: "#0f172a"
-                      }}
-                    >
-                      {formatCurrency(activity.amount)}
-                    </span>
-                    <span
-                      style={{
-                        padding: "4px 8px",
-                        background:
-                          activity.status === "completed"
-                            ? "#22c55e20"
-                            : activity.status === "partial"
-                            ? "#f59e0b20"
-                            : "#ef444420",
-                        color:
-                          activity.status === "completed"
-                            ? "#16a34a"
-                            : activity.status === "partial"
-                            ? "#b45309"
-                            : "#dc2626",
-                        borderRadius: "20px",
-                        fontSize: "12px",
-                        fontWeight: "500"
-                      }}
-                    >
-                      {activity.status}
-                    </span>
-                  </div>
+                    <div style={{ 
+                      ...styles.actIcon, 
+                      background: act.type === 'order' ? 'rgba(37, 99, 235, 0.08)' : act.type === 'stock' ? 'rgba(239, 68, 68, 0.08)' : 'rgba(22, 163, 74, 0.08)', 
+                      color: act.type === 'order' ? '#2563EB' : act.type === 'stock' ? '#ef4444' : '#16a34a' 
+                    }}>
+                      {act.type === 'order' ? <ShoppingCart size={16} /> : act.type === 'stock' ? <AlertTriangle size={16} /> : <IndianRupee size={16} />}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={styles.actMain}>{act.title}</div>
+                      <div style={styles.actSub}>{act.sub}</div>
+                    </div>
+                    <div style={styles.actTime}>
+                      {new Date(act.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </motion.div>
+                ))
+              ) : (
+                <div style={styles.emptyState}>
+                  <div style={styles.emptyIcon}><Activity size={28} /></div>
+                  <p style={{ margin: 0, fontSize: "14px" }}>No activity recorded today</p>
                 </div>
-              ))
-            ) : (
-              <div
-                style={{
-                  padding: "16px",
-                  background: "#f8fafc",
-                  borderRadius: "12px",
-                  color: "#64748b",
-                  fontSize: "14px"
-                }}
-              >
-                No recent orders found
-              </div>
-            )}
+              )}
+            </AnimatePresence>
           </div>
         </div>
 
-        <div
-          style={{
-            background: "#fff",
-            borderRadius: "20px",
-            padding: "24px",
-            boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
-            border: "1px solid #e2e8f0"
-          }}
-        >
-          <h3
-            style={{
-              fontSize: "18px",
-              fontWeight: "600",
-              color: "#0f172a",
-              margin: "0 0 20px 0"
-            }}
-          >
-            Quick Insights
-          </h3>
-
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "16px"
-            }}
-          >
-            <div
-              style={{
-                padding: "16px",
-                background: "linear-gradient(135deg, #3b82f610 0%, #3b82f620 100%)",
-                borderRadius: "16px"
-              }}
-            >
-              <div
-                style={{
-                  fontSize: "14px",
-                  color: "#1e293b",
-                  marginBottom: "8px"
-                }}
-              >
-                Collection Efficiency
-              </div>
-              <div
-                style={{
-                  fontSize: "24px",
-                  fontWeight: "700",
-                  color: "#0f172a",
-                  marginBottom: "8px"
-                }}
-              >
-                {collectionEfficiency}%
-              </div>
-              <div
-                style={{
-                  width: "100%",
-                  height: "8px",
-                  background: "#e2e8f0",
-                  borderRadius: "4px",
-                  overflow: "hidden"
-                }}
-              >
-                <div
-                  style={{
-                    width: `${Math.min(Number(collectionEfficiency), 100)}%`,
-                    height: "100%",
-                    background: "linear-gradient(90deg, #3b82f6, #8b5cf6)",
-                    borderRadius: "4px"
-                  }}
-                />
-              </div>
-            </div>
-
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: "12px"
-              }}
-            >
-              <div
-                style={{
-                  padding: "16px",
-                  background: "#f8fafc",
-                  borderRadius: "16px",
-                  textAlign: "center"
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: "13px",
-                    color: "#64748b",
-                    marginBottom: "4px"
-                  }}
-                >
-                  Avg Order Value
-                </div>
-                <div
-                  style={{
-                    fontSize: "20px",
-                    fontWeight: "700",
-                    color: "#0f172a"
-                  }}
-                >
-                  {formatCurrency(averageOrderValue)}
-                </div>
-              </div>
-
-              <div
-                style={{
-                  padding: "16px",
-                  background: "#f8fafc",
-                  borderRadius: "16px",
-                  textAlign: "center"
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: "13px",
-                    color: "#64748b",
-                    marginBottom: "4px"
-                  }}
-                >
-                  Paid vs Due
-                </div>
-                <div
-                  style={{
-                    fontSize: "20px",
-                    fontWeight: "700",
-                    color: "#0f172a"
-                  }}
-                >
-                  {formatCurrency(stats.paid)} / {formatCurrency(stats.due)}
-                </div>
-              </div>
-            </div>
+        {/* Recent Performance Table */}
+        <div style={styles.recentCard}>
+          <div style={styles.secHeader}>
+            <TrendingUp size={18} color="#2563EB" />
+            <h3 style={styles.secTitle}>Recent Orders</h3>
+          </div>
+          <div style={styles.tableWrap}>
+            <table style={styles.table}>
+              <thead>
+                <tr>
+                  <th style={styles.th}>Customer</th>
+                  <th style={styles.th}>Order ID</th>
+                  <th style={styles.th}>Status</th>
+                  <th style={{ ...styles.th, textAlign: "right" }}>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentOrders.map((o, i) => (
+                  <tr key={i} style={styles.tr}>
+                    <td style={styles.td}>
+                      <div style={styles.tdName}>{o.customer_name}</div>
+                    </td>
+                    <td style={styles.td}>
+                      <code style={styles.auditCode}>#{o.order_id}</code>
+                    </td>
+                    <td style={styles.td}>
+                      <span style={{ 
+                        ...styles.statusBadge, 
+                        background: o.remaining_amount === 0 ? 'rgba(22, 163, 74, 0.08)' : 'rgba(245, 158, 11, 0.08)',
+                        color: o.remaining_amount === 0 ? '#16a34a' : '#f59e0b'
+                      }}>
+                        {o.remaining_amount === 0 ? "Paid" : "Due"}
+                      </span>
+                    </td>
+                    <td style={{ ...styles.td, textAlign: "right", fontWeight: "700", color: "#0F172A" }}>
+                      {formatCurrency(o.total_amount)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
 
-      <div
-        style={{
-          marginTop: "24px",
-          padding: "16px 24px",
-          background: "#fff",
-          borderRadius: "16px",
-          fontSize: "13px",
-          color: "#64748b",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: "12px",
-          border: "1px solid #e2e8f0"
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "16px"
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px"
-            }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="10"></circle>
-              <polyline points="12 6 12 12 16 14"></polyline>
-            </svg>
-            <span>Last updated: {lastUpdated.toLocaleTimeString("en-IN")}</span>
-          </div>
-          <span style={{ color: "#cbd5e1" }}>•</span>
-          <span>Auto-refreshes every 30s</span>
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px"
-          }}
-        >
-          <span
-            style={{
-              display: "inline-block",
-              width: "8px",
-              height: "8px",
-              background: "#22c55e",
-              borderRadius: "50%"
-            }}
-          />
-          <span>All systems operational</span>
-        </div>
-      </div>
-    </div>
+      <style>{`
+        .spin { animation: spin 2s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .mb-8 { margin-bottom: 32px; }
+      `}</style>
+    </motion.div>
   );
 }
+
+const styles = {
+  container: { padding: "24px 0 40px" },
+  header: { display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "32px", flexWrap: "wrap", gap: "20px" },
+  titleArea: { flex: 1 },
+  title: { fontSize: "28px", fontWeight: "800", color: "#0F172A", margin: "0 0 6px", letterSpacing: "-0.5px" },
+  subtitle: { color: "#64748b", fontSize: "14px", fontWeight: "400" },
+  actions: { display: "flex", gap: "10px" },
+  primaryBtn: { display: "flex", alignItems: "center", gap: "8px", padding: "10px 20px", background: "#2563EB", color: "#fff", border: "none", borderRadius: "10px", cursor: "pointer", fontWeight: "600", fontSize: "13px", boxShadow: "0 2px 8px rgba(37, 99, 235, 0.25)", transition: "all 0.2s", fontFamily: "inherit" },
+  secondaryBtn: { display: "flex", alignItems: "center", gap: "8px", padding: "10px 20px", background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "10px", cursor: "pointer", fontWeight: "600", fontSize: "13px", color: "#475569", transition: "all 0.2s", fontFamily: "inherit" },
+  
+  statsGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "20px", marginBottom: "32px" },
+  statCard: { padding: "24px", borderRadius: "16px", background: "#ffffff", border: "1px solid #e2e8f0", transition: "all 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" },
+  statHeader: { marginBottom: "16px" },
+  iconBox: { width: "44px", height: "44px", borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center" },
+  cardValue: { fontSize: "26px", fontWeight: "800", margin: "0 0 4px", letterSpacing: "-0.5px", color: "#0F172A" },
+  cardLabel: { fontSize: "14px", fontWeight: "600", color: "#475569", marginBottom: "2px" },
+  cardDetail: { fontSize: "12px", color: "#94a3b8", fontWeight: "400" },
+
+  mainGrid: { display: "grid", gridTemplateColumns: "1fr 1.6fr", gap: "20px", alignItems: "start" },
+  pulseCard: { padding: "24px", borderRadius: "16px", border: "1px solid #e2e8f0", background: "#ffffff", boxShadow: "0 1px 3px rgba(0,0,0,0.04)", height: "100%" },
+  secHeader: { display: "flex", alignItems: "center", gap: "10px", marginBottom: "24px" },
+  secTitle: { fontSize: "16px", fontWeight: "700", color: "#0F172A", margin: 0 },
+  pulseIndicator: { width: "20px", height: "20px", display: "flex", alignItems: "center", justifyContent: "center" },
+  pulseDot: { width: "8px", height: "8px", background: "#2563EB", borderRadius: "50%", boxShadow: "0 0 0 3px rgba(37, 99, 235, 0.15)", animation: "pulse 2s infinite" },
+  
+  activityList: { display: "flex", flexDirection: "column", gap: "8px" },
+  actItem: { display: "flex", alignItems: "center", gap: "12px", padding: "12px", background: "#F8FAFC", borderRadius: "10px", border: "1px solid #f1f5f9", transition: "all 0.2s" },
+  actIcon: { width: "36px", height: "36px", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  actMain: { fontSize: "13px", fontWeight: "600", color: "#0F172A" },
+  actSub: { fontSize: "12px", color: "#64748b", fontWeight: "400" },
+  actTime: { fontSize: "11px", fontWeight: "500", color: "#94a3b8" },
+  emptyState: { textAlign: "center", padding: "48px 0", color: "#94a3b8" },
+  emptyIcon: { marginBottom: "12px", opacity: 0.3 },
+
+  recentCard: { padding: "24px", borderRadius: "16px", border: "1px solid #e2e8f0", background: "#ffffff", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" },
+  tableWrap: { overflowX: "auto" },
+  table: { width: "100%", borderCollapse: "collapse" },
+  th: { textAlign: "left", padding: "0 16px 14px", color: "#94a3b8", fontSize: "11px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px" },
+  tr: { borderBottom: "1px solid #f1f5f9", transition: "background 0.2s" },
+  td: { padding: "16px", fontSize: "13px", color: "#475569" },
+  tdName: { fontWeight: "600", color: "#0F172A" },
+  auditCode: { background: "#F8FAFC", padding: "4px 10px", borderRadius: "6px", fontSize: "12px", fontWeight: "600", color: "#2563EB", border: "1px solid #e2e8f0" },
+  statusBadge: { padding: "4px 12px", borderRadius: "20px", fontSize: "11px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.3px" }
+};
 
 export default Dashboard;

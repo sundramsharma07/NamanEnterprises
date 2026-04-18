@@ -1,36 +1,40 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../services/api";
+import { 
+  Users, 
+  UserPlus, 
+  Search, 
+  MapPin, 
+  Phone,
+  ArrowRight,
+  ExternalLink,
+  Trash2,
+  Printer,
+  Eye
+} from "lucide-react";
+import { Skeleton } from "../components/ui";
+import { Button } from "../components/ui/Button";
+import { motion, AnimatePresence } from "framer-motion";
+import toast from "react-hot-toast";
 
-function Customers() {
+export default function Customers() {
+  const navigate = useNavigate();
   const [customers, setCustomers] = useState([]);
-  const [filteredCustomers, setFilteredCustomers] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [showForm, setShowForm] = useState(false);
-  const [editingCustomer, setEditingCustomer] = useState(null);
-  const [form, setForm] = useState({
-    name: "",
-    phone: "",
-    address: "",
-    email: "",
-    gstin: ""
-  });
-  const [formErrors, setFormErrors] = useState({});
-  const [deleteLoading, setDeleteLoading] = useState(null);
-  const [sortConfig, setSortConfig] = useState({ key: "name", direction: "asc" });
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [loading, setLoading] = useState(true);
+  const [showAddForm, setShowAddForm] = useState(false);
+  
+  const [formData, setFormData] = useState({ name: "", phone: "", address: "" });
 
   const fetchCustomers = useCallback(async () => {
     try {
       setLoading(true);
       const res = await api.get("/customers");
-      const data = Array.isArray(res.data) ? res.data : [];
-      setCustomers(data);
-      setFilteredCustomers(data);
-    } catch (error) {
-      console.error("Failed to fetch customers:", error);
-      // Show error toast/notification here
+      setCustomers(res.data || []);
+    } catch (err) {
+      console.error("Failed to fetch customers:", err);
+      toast.error("Failed to load customers");
     } finally {
       setLoading(false);
     }
@@ -40,772 +44,348 @@ function Customers() {
     fetchCustomers();
   }, [fetchCustomers]);
 
-  // Search and filter
-  useEffect(() => {
-    const filtered = customers.filter(customer => 
-      customer.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customer.phone?.includes(searchTerm) ||
-      customer.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customer.address?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    setFilteredCustomers(filtered);
-    setCurrentPage(1);
-  }, [searchTerm, customers]);
-
-  const validateForm = () => {
-    const errors = {};
-    if (!form.name.trim()) errors.name = "Name is required";
-    if (!form.phone.trim()) errors.phone = "Phone is required";
-    else if (!/^\d{10}$/.test(form.phone)) errors.phone = "Phone must be 10 digits";
-    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      errors.email = "Invalid email format";
-    }
-    if (form.gstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(form.gstin)) {
-      errors.gstin = "Invalid GSTIN format";
-    }
-    return errors;
-  };
-
-  const handleSubmit = async (e) => {
+  const handleAddSubmit = async (e) => {
     e.preventDefault();
-    
-    const errors = validateForm();
-    if (Object.keys(errors).length > 0) {
-      setFormErrors(errors);
-      return;
-    }
-
     try {
-      if (editingCustomer) {
-        await api.put(`/customers/${editingCustomer.id}`, form);
-        alert("Customer updated successfully");
-      } else {
-        await api.post("/customers", form);
-        alert("Customer added successfully");
-      }
-      
-      setForm({ name: "", phone: "", address: "", email: "", gstin: "" });
-      setEditingCustomer(null);
-      setShowForm(false);
-      setFormErrors({});
+      await api.post("/customers", formData);
+      toast.success("Customer added successfully!");
+      setFormData({ name: "", phone: "", address: "" });
+      setShowAddForm(false);
       fetchCustomers();
-    } catch (error) {
-      console.error("Failed to save customer:", error);
-      alert(error.response?.data?.message || "Failed to save customer");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Operation failed");
     }
   };
 
-  const handleEdit = (customer) => {
-    setEditingCustomer(customer);
-    setForm({
-      name: customer.name || "",
-      phone: customer.phone || "",
-      address: customer.address || "",
-      email: customer.email || "",
-      gstin: customer.gstin || ""
-    });
-    setShowForm(true);
-    setFormErrors({});
-  };
-
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this customer? This action cannot be undone.")) return;
-
-    setDeleteLoading(id);
+  const handleDelete = async (e, id) => {
+    e.stopPropagation();
+    if (!window.confirm("Permanently delete this customer? All history will be lost.")) return;
     try {
-      const res = await api.delete(`/customers/${id}`);
-      alert(res.data.message || "Customer deleted successfully");
+      await api.delete(`/customers/${id}`);
+      toast.success("Customer removed");
       fetchCustomers();
-    } catch (error) {
-      console.error("Failed to delete customer:", error);
-      alert(error.response?.data?.message || "Delete failed");
-    } finally {
-      setDeleteLoading(null);
+    } catch (err) {
+      toast.error("Failed to delete customer");
     }
   };
 
-  const handleSort = (key) => {
-    setSortConfig({
-      key,
-      direction: sortConfig.key === key && sortConfig.direction === "asc" ? "desc" : "asc"
-    });
+  const handlePrint = (e, customer) => {
+    e.stopPropagation();
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+      <html>
+        <head><title>Customer Details - ${customer.name}</title></head>
+        <body>
+          <h1>Customer Details</h1>
+          <p><strong>Name:</strong> ${customer.name}</p>
+          <p><strong>Phone:</strong> ${customer.phone}</p>
+          <p><strong>Address:</strong> ${customer.address || 'N/A'}</p>
+          <p><strong>Total Outstanding:</strong> ${formatCurrency(customer.total_due)}</p>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
   };
 
-  const sortedCustomers = useMemo(() => {
-    const sorted = [...filteredCustomers];
-    if (sortConfig.key) {
-      sorted.sort((a, b) => {
-        if (a[sortConfig.key] < b[sortConfig.key]) {
-          return sortConfig.direction === "asc" ? -1 : 1;
-        }
-        if (a[sortConfig.key] > b[sortConfig.key]) {
-          return sortConfig.direction === "asc" ? 1 : -1;
-        }
-        return 0;
-      });
-    }
-    return sorted;
-  }, [filteredCustomers, sortConfig]);
+  const filtered = customers.filter(c => 
+    c.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    c.phone?.includes(searchTerm)
+  );
 
-  // Pagination
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = sortedCustomers.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(sortedCustomers.length / itemsPerPage);
-
-  const getSortIcon = (key) => {
-    if (sortConfig.key !== key) return "↕️";
-    return sortConfig.direction === "asc" ? "↑" : "↓";
+  const formatCurrency = (val) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0
+    }).format(val || 0);
   };
 
-  if (loading) {
+  if (loading && customers.length === 0) {
     return (
-      <div style={styles.loadingContainer}>
-        <div style={styles.spinner} />
-        <p style={styles.loadingText}>Loading customers...</p>
+      <div style={styles.container}>
+        <Skeleton height="50px" width="300px" style={{ marginBottom: "24px" }} />
+        <Skeleton height="500px" />
       </div>
     );
   }
 
   return (
-    <div style={styles.container}>
-      <style>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-        @keyframes slideIn {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .fade-in {
-          animation: slideIn 0.3s ease forwards;
-        }
-      `}</style>
-
-      {/* Header Section */}
-      <div style={styles.header}>
-        <div>
+    <motion.div 
+      initial={{ opacity: 0, y: 15 }} 
+      animate={{ opacity: 1, y: 0 }} 
+      transition={{ duration: 0.5 }}
+      style={styles.container}
+    >
+      <header style={styles.header}>
+        <div style={styles.titleArea}>
           <h1 style={styles.title}>Customers</h1>
-          <p style={styles.subtitle}>
-            Manage your customer relationships • {filteredCustomers.length} total customers
-          </p>
+          <p style={styles.subtitle}>Managing {customers.length} customer accounts</p>
         </div>
-        <button
-          onClick={() => {
-            setShowForm(!showForm);
-            setEditingCustomer(null);
-            setForm({ name: "", phone: "", address: "", email: "", gstin: "" });
-            setFormErrors({});
-          }}
-          style={styles.addButton}
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M12 5v14M5 12h14" />
-          </svg>
-          {showForm ? "Cancel" : "Add New Customer"}
-        </button>
-      </div>
-
-      {/* Add/Edit Form */}
-      {showForm && (
-        <div style={styles.formContainer} className="fade-in">
-          <h3 style={styles.formTitle}>
-            {editingCustomer ? "Edit Customer" : "Add New Customer"}
-          </h3>
-          <form onSubmit={handleSubmit} style={styles.form}>
-            <div style={styles.formGrid}>
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Name *</label>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  style={{
-                    ...styles.input,
-                    borderColor: formErrors.name ? "#ef4444" : "#e2e8f0"
-                  }}
-                  placeholder="Enter customer name"
-                />
-                {formErrors.name && <span style={styles.errorText}>{formErrors.name}</span>}
-              </div>
-
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Phone *</label>
-                <input
-                  type="tel"
-                  value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                  style={{
-                    ...styles.input,
-                    borderColor: formErrors.phone ? "#ef4444" : "#e2e8f0"
-                  }}
-                  placeholder="10 digit mobile number"
-                />
-                {formErrors.phone && <span style={styles.errorText}>{formErrors.phone}</span>}
-              </div>
-
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Email</label>
-                <input
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  style={{
-                    ...styles.input,
-                    borderColor: formErrors.email ? "#ef4444" : "#e2e8f0"
-                  }}
-                  placeholder="customer@example.com"
-                />
-                {formErrors.email && <span style={styles.errorText}>{formErrors.email}</span>}
-              </div>
-
-              <div style={styles.formGroup}>
-                <label style={styles.label}>GSTIN</label>
-                <input
-                  type="text"
-                  value={form.gstin}
-                  onChange={(e) => setForm({ ...form, gstin: e.target.value.toUpperCase() })}
-                  style={{
-                    ...styles.input,
-                    borderColor: formErrors.gstin ? "#ef4444" : "#e2e8f0"
-                  }}
-                  placeholder="22AAAAA0000A1Z5"
-                />
-                {formErrors.gstin && <span style={styles.errorText}>{formErrors.gstin}</span>}
-              </div>
-
-              <div style={{ ...styles.formGroup, gridColumn: "span 2" }}>
-                <label style={styles.label}>Address</label>
-                <textarea
-                  value={form.address}
-                  onChange={(e) => setForm({ ...form, address: e.target.value })}
-                  style={styles.textarea}
-                  placeholder="Enter complete address"
-                  rows="3"
-                />
-              </div>
-            </div>
-
-            <div style={styles.formActions}>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowForm(false);
-                  setEditingCustomer(null);
-                  setForm({ name: "", phone: "", address: "", email: "", gstin: "" });
-                  setFormErrors({});
-                }}
-                style={styles.cancelButton}
-              >
-                Cancel
-              </button>
-              <button type="submit" style={styles.submitButton}>
-                {editingCustomer ? "Update Customer" : "Add Customer"}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {/* Search Bar */}
-      <div style={styles.searchContainer}>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" style={styles.searchIcon}>
-          <circle cx="11" cy="11" r="8" />
-          <path d="M21 21l-4.35-4.35" />
-        </svg>
-        <input
-          type="text"
-          placeholder="Search customers by name, phone, email, or address..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          style={styles.searchInput}
-        />
-        {searchTerm && (
-          <button
-            onClick={() => setSearchTerm("")}
-            style={styles.clearSearch}
+        <div style={styles.headerButtons}>
+          <Button variant="default" onClick={() => window.print()} style={{ background: "#fff", border: "1px solid #e2e8f0", color: "#475569" }}>
+            <Printer size={16} /> Print
+          </Button>
+          <Button 
+            variant={showAddForm ? "danger" : "primary"}
+            onClick={() => setShowAddForm(!showAddForm)} 
           >
-            ✕
-          </button>
+            {showAddForm ? "Close" : <><UserPlus size={16} /> Add Customer</>}
+          </Button>
+        </div>
+      </header>
+
+      <AnimatePresence>
+        {showAddForm && (
+          <motion.div 
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            style={{ overflow: "hidden" }}
+          >
+            <div style={styles.addCard}>
+              <h3 style={styles.secTitle}>New Customer</h3>
+              <form onSubmit={handleAddSubmit} style={styles.formRow}>
+                <div style={styles.field}>
+                  <label style={styles.label}>Full Name</label>
+                  <input 
+                    required 
+                    placeholder="e.g. Sharma Constructions"
+                    value={formData.name} 
+                    onChange={e => setFormData({...formData, name: e.target.value})} 
+                    style={styles.input} 
+                  />
+                </div>
+                <div style={styles.field}>
+                  <label style={styles.label}>Phone</label>
+                  <input 
+                    required 
+                    type="tel" 
+                    placeholder="+91..."
+                    value={formData.phone} 
+                    onChange={e => setFormData({...formData, phone: e.target.value})} 
+                    style={styles.input} 
+                  />
+                </div>
+                <div style={styles.field}>
+                  <label style={styles.label}>Address</label>
+                  <input 
+                    placeholder="Enter address"
+                    value={formData.address} 
+                    onChange={e => setFormData({...formData, address: e.target.value})} 
+                    style={styles.input} 
+                  />
+                </div>
+                <Button type="submit" variant="primary">
+                  Add <ArrowRight size={14} />
+                </Button>
+              </form>
+            </div>
+          </motion.div>
         )}
+      </AnimatePresence>
+
+      <div style={styles.filterRow}>
+        <div style={styles.searchBox}>
+          <Search size={16} style={styles.searchIcon} />
+          <input 
+            type="text" 
+            placeholder="Search by name or phone..." 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={styles.searchInput}
+          />
+        </div>
+        <div style={styles.totalBadge}>
+          <Users size={14} /> {filtered.length} results
+        </div>
       </div>
 
-      {/* Customers Table */}
-      <div style={styles.tableContainer}>
+      <div style={styles.tableWrap}>
         <table style={styles.table}>
-          <thead style={styles.tableHead}>
+          <thead style={styles.thead}>
             <tr>
-              <th style={styles.th} onClick={() => handleSort("id")}>
-                ID {getSortIcon("id")}
-              </th>
-              <th style={styles.th} onClick={() => handleSort("name")}>
-                Name {getSortIcon("name")}
-              </th>
-              <th style={styles.th} onClick={() => handleSort("phone")}>
-                Phone {getSortIcon("phone")}
-              </th>
-              <th style={styles.th}>Email</th>
-              <th style={styles.th}>Address</th>
-              <th style={styles.th}>GSTIN</th>
-              <th style={styles.th}>Actions</th>
+              <th style={styles.th}>Customer</th>
+              <th style={styles.th}>Contact</th>
+              <th style={styles.th}>Status</th>
+              <th style={styles.th}>Outstanding</th>
+              <th style={{ ...styles.th, textAlign: "center" }}>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {currentItems.length > 0 ? (
-              currentItems.map((customer) => (
-                <tr key={customer.id} style={styles.tableRow}>
-                  <td style={styles.td}>#{customer.id}</td>
-                  <td style={styles.td}>
-                    <div style={styles.customerName}>
-                      <div style={styles.avatar}>
-                        {customer.name?.charAt(0).toUpperCase()}
-                      </div>
-                      {customer.name}
+            {filtered.map((c, i) => (
+              <motion.tr 
+                key={c.id} 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: i * 0.02 }}
+                style={styles.tr}
+                onClick={() => navigate(`/customers/${c.id}`)}
+              >
+                <td style={styles.td}>
+                  <div style={styles.userCell}>
+                    <div style={styles.avatar}>{c.name?.charAt(0) || '?'}</div>
+                    <div style={styles.nameWrap}>
+                      <div style={styles.custName}>{c.name}</div>
+                      <div style={styles.custId}>ID: #C-{c.id.toString().padStart(4, '0')}</div>
                     </div>
-                  </td>
-                  <td style={styles.td}>{customer.phone}</td>
-                  <td style={styles.td}>{customer.email || "-"}</td>
-                  <td style={styles.td}>
-                    <div style={styles.addressCell}>
-                      {customer.address || "-"}
-                    </div>
-                  </td>
-                  <td style={styles.td}>
-                    <code style={styles.gstin}>
-                      {customer.gstin || "-"}
-                    </code>
-                  </td>
-                  <td style={styles.td}>
-                    <div style={styles.actionButtons}>
-                      <button
-                        onClick={() => handleEdit(customer)}
-                        style={styles.editButton}
-                        title="Edit customer"
-                      >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={() => handleDelete(customer.id)}
-                        disabled={deleteLoading === customer.id}
-                        style={{
-                          ...styles.deleteButton,
-                          opacity: deleteLoading === customer.id ? 0.5 : 1,
-                          cursor: deleteLoading === customer.id ? "wait" : "pointer"
-                        }}
-                        title="Delete customer"
-                      >
-                        {deleteLoading === customer.id ? (
-                          <div style={styles.buttonSpinner} />
-                        ) : (
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
-                          </svg>
-                        )}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="7" style={styles.noData}>
-                  {searchTerm ? "No customers match your search" : "No customers found"}
+                  </div>
                 </td>
-              </tr>
-            )}
+                <td style={styles.td}>
+                  <div style={styles.contactCell}>
+                    <div style={styles.contactItem}><Phone size={12} color="#2563EB" /> {c.phone}</div>
+                    <div style={styles.contactItem}><MapPin size={12} color="#94a3b8" /> {c.address || "N/A"}</div>
+                  </div>
+                </td>
+                <td style={styles.td}>
+                  <span style={{ 
+                    ...styles.badge, 
+                    background: c.total_due > 0 ? "rgba(239, 68, 68, 0.08)" : "rgba(22, 163, 74, 0.08)",
+                    color: c.total_due > 0 ? "#ef4444" : "#16a34a"
+                  }}>
+                    {c.total_due > 0 ? "Outstanding" : "Clear"}
+                  </span>
+                </td>
+                <td style={{ ...styles.td, fontWeight: 700, fontSize: "14px", color: "#0F172A" }}>
+                  {formatCurrency(c.total_due)}
+                </td>
+                <td style={{ ...styles.td, textAlign: "center" }}>
+                  <div style={styles.actions}>
+                    <button 
+                      onClick={(e) => handlePrint(e, c)} 
+                      title="Print"
+                      style={styles.actionBtn}
+                    >
+                      <Printer size={14} />
+                    </button>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); navigate(`/customers/${c.id}`); }} 
+                      title="View"
+                      style={styles.actionBtn}
+                    >
+                      <Eye size={14} />
+                    </button>
+                    <button 
+                      onClick={(e) => handleDelete(e, c.id)} 
+                      title="Delete"
+                      style={{ ...styles.actionBtn, color: "#ef4444" }}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </td>
+              </motion.tr>
+            ))}
           </tbody>
         </table>
+        {filtered.length === 0 && (
+          <div style={styles.emptyStateContainer}>
+            <Search size={40} style={{ opacity: 0.15 }} />
+            <h4 style={{ margin: "12px 0 4px", color: "#0F172A", fontWeight: "600" }}>No matches found</h4>
+            <p style={{ margin: 0, color: "#94a3b8", fontSize: "14px" }}>Refine your search or add a new customer.</p>
+          </div>
+        )}
       </div>
-
-      {/* Pagination */}
-      {sortedCustomers.length > 0 && (
-        <div style={styles.pagination}>
-          <button
-            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-            disabled={currentPage === 1}
-            style={styles.pageButton}
-          >
-            Previous
-          </button>
-          <span style={styles.pageInfo}>
-            Page {currentPage} of {totalPages}
-          </span>
-          <button
-            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-            disabled={currentPage === totalPages}
-            style={styles.pageButton}
-          >
-            Next
-          </button>
-        </div>
-      )}
-
-      {/* Summary Stats */}
-      <div style={styles.statsContainer}>
-        <div style={styles.statItem}>
-          <span style={styles.statLabel}>Total Customers</span>
-          <span style={styles.statValue}>{customers.length}</span>
-        </div>
-        <div style={styles.statItem}>
-          <span style={styles.statLabel}>With GSTIN</span>
-          <span style={styles.statValue}>
-            {customers.filter(c => c.gstin).length}
-          </span>
-        </div>
-        <div style={styles.statItem}>
-          <span style={styles.statLabel}>With Email</span>
-          <span style={styles.statValue}>
-            {customers.filter(c => c.email).length}
-          </span>
-        </div>
-      </div>
-    </div>
+    </motion.div>
   );
 }
 
 const styles = {
-  container: {
-    padding: "32px",
-    maxWidth: "1400px",
-    margin: "0 auto",
-    background: "#f8fafc",
-    minHeight: "100vh"
-  },
-  loadingContainer: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: "60vh",
-    gap: "16px"
-  },
-  spinner: {
-    width: "48px",
-    height: "48px",
-    border: "4px solid #e2e8f0",
-    borderTop: "4px solid #3b82f6",
-    borderRadius: "50%",
-    animation: "spin 1s linear infinite"
-  },
-  loadingText: {
-    color: "#64748b",
-    fontSize: "16px"
-  },
-  header: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "32px",
-    flexWrap: "wrap",
-    gap: "16px"
-  },
-  title: {
-    fontSize: "32px",
-    fontWeight: "700",
-    color: "#0f172a",
-    margin: "0 0 8px 0",
-    letterSpacing: "-0.02em"
-  },
-  subtitle: {
-    color: "#475569",
-    fontSize: "16px",
-    margin: 0
-  },
-  addButton: {
-    padding: "12px 24px",
-    background: "#3b82f6",
-    border: "none",
-    borderRadius: "12px",
-    color: "white",
-    fontSize: "14px",
-    fontWeight: "600",
-    cursor: "pointer",
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    transition: "all 0.2s ease",
-    boxShadow: "0 4px 6px -1px rgba(59,130,246,0.3)"
-  },
-  formContainer: {
-    background: "white",
-    borderRadius: "20px",
-    padding: "24px",
-    marginBottom: "32px",
-    boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)",
-    border: "1px solid #e2e8f0"
-  },
-  formTitle: {
-    fontSize: "18px",
-    fontWeight: "600",
-    color: "#0f172a",
-    margin: "0 0 20px 0"
-  },
-  form: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "20px"
-  },
-  formGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(2, 1fr)",
-    gap: "16px"
-  },
-  formGroup: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "6px"
-  },
-  label: {
-    fontSize: "14px",
-    fontWeight: "500",
-    color: "#475569"
-  },
-  input: {
-    padding: "12px",
-    border: "1px solid #e2e8f0",
-    borderRadius: "12px",
-    fontSize: "14px",
-    outline: "none",
-    transition: "all 0.2s ease"
-  },
-  textarea: {
-    padding: "12px",
-    border: "1px solid #e2e8f0",
-    borderRadius: "12px",
-    fontSize: "14px",
-    outline: "none",
-    resize: "vertical",
-    fontFamily: "inherit"
-  },
-  errorText: {
-    fontSize: "12px",
-    color: "#ef4444"
-  },
-  formActions: {
-    display: "flex",
-    justifyContent: "flex-end",
-    gap: "12px",
-    marginTop: "8px"
-  },
-  cancelButton: {
-    padding: "12px 24px",
-    background: "white",
-    border: "1px solid #e2e8f0",
-    borderRadius: "12px",
-    fontSize: "14px",
-    fontWeight: "500",
-    color: "#475569",
-    cursor: "pointer",
-    transition: "all 0.2s ease"
-  },
-  submitButton: {
-    padding: "12px 24px",
-    background: "#3b82f6",
-    border: "none",
-    borderRadius: "12px",
-    fontSize: "14px",
-    fontWeight: "500",
-    color: "white",
-    cursor: "pointer",
-    transition: "all 0.2s ease"
-  },
-  searchContainer: {
-    position: "relative",
-    marginBottom: "24px"
-  },
-  searchIcon: {
-    position: "absolute",
-    left: "12px",
-    top: "50%",
-    transform: "translateY(-50%)"
-  },
-  searchInput: {
-    width: "100%",
-    padding: "14px 20px 14px 44px",
-    border: "1px solid #e2e8f0",
-    borderRadius: "16px",
-    fontSize: "15px",
-    outline: "none",
-    transition: "all 0.2s ease",
-    background: "white",
-    boxShadow: "0 2px 4px rgba(0,0,0,0.02)"
-  },
-  clearSearch: {
-    position: "absolute",
-    right: "12px",
-    top: "50%",
-    transform: "translateY(-50%)",
-    background: "none",
-    border: "none",
-    color: "#64748b",
-    cursor: "pointer",
-    fontSize: "16px",
-    padding: "4px 8px"
-  },
-  tableContainer: {
-    background: "white",
-    borderRadius: "20px",
-    overflow: "hidden",
-    boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
-    border: "1px solid #e2e8f0"
-  },
-  table: {
-    width: "100%",
-    borderCollapse: "collapse"
-  },
-  tableHead: {
-    background: "#f8fafc",
-    borderBottom: "2px solid #e2e8f0"
-  },
-  th: {
-    padding: "16px",
-    textAlign: "left",
-    fontSize: "13px",
-    fontWeight: "600",
-    color: "#475569",
-    textTransform: "uppercase",
-    letterSpacing: "0.5px",
-    cursor: "pointer",
-    userSelect: "none"
-  },
-  tableRow: {
-    borderBottom: "1px solid #e2e8f0",
-    transition: "background 0.2s ease",
-    cursor: "pointer"
-  },
-  td: {
-    padding: "16px",
-    fontSize: "14px",
-    color: "#1e293b"
-  },
-  customerName: {
-    display: "flex",
-    alignItems: "center",
-    gap: "12px"
-  },
-  avatar: {
-    width: "36px",
-    height: "36px",
-    background: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
-    borderRadius: "10px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    color: "white",
-    fontWeight: "600",
-    fontSize: "16px"
-  },
-  addressCell: {
-    maxWidth: "200px",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap"
-  },
-  gstin: {
-    background: "#f1f5f9",
-    padding: "4px 8px",
-    borderRadius: "6px",
-    fontSize: "12px",
-    fontFamily: "monospace"
-  },
-  actionButtons: {
-    display: "flex",
-    gap: "8px"
-  },
-  editButton: {
-    padding: "8px",
-    background: "#f1f5f9",
-    border: "none",
-    borderRadius: "8px",
-    color: "#475569",
-    cursor: "pointer",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    transition: "all 0.2s ease"
-  },
-  deleteButton: {
-    padding: "8px",
-    background: "#fee2e2",
-    border: "none",
-    borderRadius: "8px",
-    color: "#ef4444",
-    cursor: "pointer",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    transition: "all 0.2s ease"
-  },
-  buttonSpinner: {
-    width: "16px",
-    height: "16px",
-    border: "2px solid #ef4444",
-    borderTop: "2px solid transparent",
-    borderRadius: "50%",
-    animation: "spin 1s linear infinite"
-  },
-  noData: {
-    padding: "48px",
-    textAlign: "center",
-    color: "#64748b",
-    fontSize: "14px"
-  },
-  pagination: {
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
+  container: { padding: "24px 0 48px" },
+  header: { 
+    display: "flex", 
+    justifyContent: "space-between", 
+    alignItems: "center", 
+    marginBottom: "24px", 
+    flexWrap: "wrap", 
     gap: "16px",
-    marginTop: "24px"
   },
-  pageButton: {
-    padding: "8px 16px",
-    background: "white",
+  titleArea: { flex: 1 },
+  title: { fontSize: "28px", fontWeight: "800", color: "#0F172A", margin: "0 0 4px", letterSpacing: "-0.5px" },
+  subtitle: { color: "#64748b", fontSize: "14px", fontWeight: "400" },
+  headerButtons: { display: "flex", gap: "10px", alignItems: "center" },
+
+  addCard: { 
+    padding: "24px", 
+    marginBottom: "24px", 
+    background: "#fff",
+    borderRadius: "16px",
+    border: "1px solid #e2e8f0",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.04)"
+  },
+  secTitle: { fontSize: "16px", fontWeight: "700", marginBottom: "20px", color: "#0F172A" },
+  formRow: { display: "flex", gap: "16px", alignItems: "flex-end", flexWrap: "wrap" },
+  field: { flex: 1, minWidth: "200px", display: "flex", flexDirection: "column", gap: "6px" },
+  label: { fontSize: "12px", fontWeight: "600", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.3px" },
+  input: { 
+    padding: "10px 14px", 
+    borderRadius: "10px", 
+    border: "1px solid #e2e8f0", 
+    background: "#F8FAFC", 
+    outline: "none", 
+    fontSize: "14px", 
+    color: "#0F172A", 
+    fontWeight: "500",
+    fontFamily: "inherit",
+    transition: "border-color 0.2s",
+  },
+
+  filterRow: { display: "flex", gap: "12px", marginBottom: "20px", alignItems: "center", flexWrap: "wrap" },
+  searchBox: { position: "relative", flex: 1, maxWidth: "400px" },
+  searchIcon: { position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", color: "#94a3b8" },
+  searchInput: { 
+    width: "100%", 
+    padding: "10px 14px 10px 40px", 
+    borderRadius: "10px", 
+    border: "1px solid #e2e8f0", 
+    outline: "none", 
+    fontSize: "13px", 
+    background: "#fff", 
+    color: "#0F172A", 
+    fontWeight: "400", 
+    fontFamily: "inherit",
+  },
+  totalBadge: { 
+    display: "flex", alignItems: "center", gap: "6px", 
+    padding: "8px 14px", background: "#F8FAFC", 
+    border: "1px solid #e2e8f0", borderRadius: "10px", 
+    fontSize: "12px", fontWeight: "500", color: "#64748b" 
+  },
+
+  tableWrap: { overflowX: "auto", borderRadius: "16px", border: "1px solid #e2e8f0", background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" },
+  table: { width: "100%", borderCollapse: "collapse" },
+  thead: { background: "#F8FAFC", borderBottom: "1px solid #e2e8f0" },
+  th: { textAlign: "left", padding: "14px 20px", fontSize: "11px", fontWeight: "600", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.5px" },
+  tr: { borderBottom: "1px solid #f1f5f9", cursor: "pointer", transition: "background 0.15s" },
+  td: { padding: "16px 20px", fontSize: "13px", color: "#475569" },
+  userCell: { display: "flex", alignItems: "center", gap: "12px" },
+  avatar: { 
+    width: "38px", height: "38px", 
+    background: "rgba(37, 99, 235, 0.08)", 
+    color: "#2563EB", 
+    borderRadius: "10px", 
+    display: "flex", alignItems: "center", justifyContent: "center", 
+    fontWeight: "700", fontSize: "15px", 
+  },
+  nameWrap: { display: "flex", flexDirection: "column" },
+  custName: { fontWeight: "600", color: "#0F172A", fontSize: "14px" },
+  custId: { fontSize: "11px", color: "#94a3b8", fontWeight: "500", marginTop: "1px" },
+  contactCell: { display: "flex", flexDirection: "column", gap: "4px" },
+  contactItem: { display: "flex", alignItems: "center", gap: "6px", color: "#64748b", fontSize: "12px", fontWeight: "400" },
+  badge: { padding: "4px 10px", borderRadius: "6px", fontSize: "11px", fontWeight: "600", display: "inline-block" },
+  actions: { display: "flex", gap: "6px", justifyContent: "center", alignItems: "center" },
+  actionBtn: {
+    background: "#F8FAFC",
     border: "1px solid #e2e8f0",
     borderRadius: "8px",
-    fontSize: "14px",
-    fontWeight: "500",
-    color: "#475569",
+    padding: "6px 8px",
     cursor: "pointer",
-    transition: "all 0.2s ease"
-  },
-  pageInfo: {
-    fontSize: "14px",
-    color: "#64748b"
-  },
-  statsContainer: {
+    color: "#64748b",
     display: "flex",
-    justifyContent: "flex-end",
-    gap: "24px",
-    marginTop: "24px",
-    padding: "16px",
-    background: "white",
-    borderRadius: "16px",
-    border: "1px solid #e2e8f0"
-  },
-  statItem: {
-    display: "flex",
-    flexDirection: "column",
     alignItems: "center",
-    gap: "4px"
+    justifyContent: "center",
+    transition: "all 0.15s",
   },
-  statLabel: {
-    fontSize: "12px",
-    color: "#64748b"
-  },
-  statValue: {
-    fontSize: "18px",
-    fontWeight: "600",
-    color: "#0f172a"
-  }
+  emptyStateContainer: { padding: "60px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", color: "#94a3b8" },
 };
-
-export default Customers;

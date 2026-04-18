@@ -1,21 +1,7 @@
-function apiAuth(req, res, next) {
-  const apiKey = req.headers["x-api-key"];
+const { clerkMiddleware, requireAuth } = require("@clerk/express");
 
-  if (!apiKey) {
-    return res.status(401).json({
-      success: false,
-      message: "API key missing"
-    });
-  }
+// Pure Clerk authentication - no custom admin checks
+// All authenticated Clerk users can access the API
 
-  if (apiKey !== process.env.API_KEY) {
-    return res.status(403).json({
-      success: false,
-      message: "Invalid API key"
-    });
-  }
-
-  next();
-}
-
-module.exports = apiAuth;
+// Require genuine clerk JWT sessions on every request
+module.exports = [clerkMiddleware(), requireAuth()];

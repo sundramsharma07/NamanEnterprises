@@ -1,357 +1,596 @@
 import { SignIn, useAuth, useClerk, useUser } from "@clerk/react";
-import { useEffect } from "react";
-
-const ALLOWED_EMAIL = import.meta.env.VITE_ADMIN_EMAIL;
+import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import {
+  Building2,
+  AlertCircle,
+  Shield,
+  Truck,
+  Package,
+  Users,
+} from "lucide-react";
 
 function Login() {
   const { isLoaded, userId } = useAuth();
   const { user } = useUser();
   const { signOut } = useClerk();
+  const [authError, setAuthError] = useState(null);
 
   useEffect(() => {
-    if (!isLoaded || !userId || !user) return;
+    const handleClerkError = (event) => {
+      if (event.detail?.type === "error") {
+        setAuthError(
+          event.detail.message || "Authentication failed. Please try again."
+        );
+      }
+    };
 
-    const email = user.primaryEmailAddress?.emailAddress?.toLowerCase();
-
-    if (email !== ALLOWED_EMAIL.toLowerCase()) {
-      signOut({ redirectUrl: "/login" });
-    }
-  }, [isLoaded, userId, user, signOut]);
+    window.addEventListener("clerk-error", handleClerkError);
+    return () => window.removeEventListener("clerk-error", handleClerkError);
+  }, []);
 
   return (
-    <>
+    <div style={styles.page}>
+      {/* Decorative background elements */}
+      <div style={styles.bgCircle1} />
+      <div style={styles.bgCircle2} />
+
+      <div style={styles.container}>
+        {/* Left Section */}
+        <motion.div
+          initial={{ opacity: 0, x: -30 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6 }}
+          style={styles.leftSection}
+        >
+          <div style={styles.logo}>
+            <div style={styles.logoIcon}>
+              <Building2 size={28} />
+            </div>
+            <div>
+              <h1 style={styles.logoName}>NAMAN ENTERPRISES</h1>
+              <p style={styles.logoSub}>Building Material Store</p>
+            </div>
+          </div>
+
+          <div style={styles.quoteSection}>
+            <p style={styles.quoteText}>
+              Quality materials for lasting structures
+            </p>
+            <div style={styles.quoteLine} />
+          </div>
+
+          <div style={styles.features}>
+            <div style={styles.feature}>
+              <div style={styles.featureIcon}>
+                <Package size={18} />
+              </div>
+              <div>
+                <div style={styles.featureTitle}>Premium Materials</div>
+                <div style={styles.featureDesc}>Cement, Bricks, Steel & Sand</div>
+              </div>
+            </div>
+            <div style={styles.feature}>
+              <div style={styles.featureIcon}>
+                <Truck size={18} />
+              </div>
+              <div>
+                <div style={styles.featureTitle}>Fast Delivery</div>
+                <div style={styles.featureDesc}>Same-day delivery across city</div>
+              </div>
+            </div>
+            <div style={styles.feature}>
+              <div style={styles.featureIcon}>
+                <Users size={18} />
+              </div>
+              <div>
+                <div style={styles.featureTitle}>Credit Management</div>
+                <div style={styles.featureDesc}>Smart ledger for contractors</div>
+              </div>
+            </div>
+          </div>
+
+          <div style={styles.stats}>
+            <div style={styles.statBox}>
+              <span style={styles.statNum}>500+</span>
+              <span style={styles.statLabel}>Happy Contractors</span>
+            </div>
+            <div style={styles.statDivider} />
+            <div style={styles.statBox}>
+              <span style={styles.statNum}>50+</span>
+              <span style={styles.statLabel}>Material Categories</span>
+            </div>
+            <div style={styles.statDivider} />
+            <div style={styles.statBox}>
+              <span style={styles.statNum}>10+</span>
+              <span style={styles.statLabel}>Years of Trust</span>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Right Section - Login */}
+        <motion.div
+          initial={{ opacity: 0, x: 30 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+          style={styles.rightSection}
+        >
+          <div style={styles.loginCard}>
+            <div style={styles.cardHeader}>
+              <div style={styles.welcomeIcon}>
+                <Shield size={20} color="#2563EB" />
+              </div>
+              <h2 style={styles.cardTitle}>Welcome Back</h2>
+              <p style={styles.cardSub}>Sign in to access your dashboard</p>
+            </div>
+
+            {authError && (
+              <div style={styles.errorAlert}>
+                <AlertCircle size={16} />
+                <span>{authError}</span>
+              </div>
+            )}
+
+            <div style={styles.clerkWrapper} className="clerk-wrapper">
+              <SignIn
+                path="/login"
+                routing="path"
+                fallbackRedirectUrl="/dashboard"
+                appearance={{
+                  elements: {
+                    rootBox: {
+                      width: "100%",
+                      maxWidth: "100%",
+                    },
+                    cardBox: {
+                      width: "100%",
+                      maxWidth: "100%",
+                      background: "transparent",
+                      boxShadow: "none",
+                      border: "none",
+                      padding: 0,
+                      margin: 0,
+                    },
+                    card: {
+                      width: "100%",
+                      maxWidth: "100%",
+                      background: "transparent",
+                      boxShadow: "none",
+                      border: "none",
+                      padding: 0,
+                      margin: 0,
+                      borderRadius: 0,
+                    },
+                    main: {
+                      width: "100%",
+                      padding: 0,
+                      margin: 0,
+                    },
+                    header: {
+                      display: "none",
+                    },
+                    headerTitle: {
+                      display: "none",
+                    },
+                    headerSubtitle: {
+                      display: "none",
+                    },
+                    form: {
+                      width: "100%",
+                    },
+                    formField: {
+                      marginBottom: "18px",
+                    },
+                    formFieldLabel: {
+                      color: "#0F172A",
+                      fontSize: "13px",
+                      fontWeight: "600",
+                      marginBottom: "8px",
+                    },
+                    formFieldInput: {
+                      width: "100%",
+                      height: "48px",
+                      padding: "0 14px",
+                      fontSize: "14px",
+                      border: "1.5px solid #e2e8f0",
+                      borderRadius: "12px",
+                      backgroundColor: "#F8FAFC",
+                      boxSizing: "border-box",
+                      transition: "border-color 0.2s, box-shadow 0.2s",
+                    },
+                    formButtonPrimary: {
+                      width: "100%",
+                      height: "50px",
+                      background: "#2563EB",
+                      color: "#fff",
+                      fontSize: "15px",
+                      fontWeight: "600",
+                      borderRadius: "12px",
+                      border: "none",
+                      boxShadow: "0 4px 12px rgba(37, 99, 235, 0.25)",
+                      transition: "all 0.2s",
+                    },
+                    socialButtons: {
+                      width: "100%",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "10px",
+                    },
+                    socialButtonsBlockButton: {
+                      width: "100%",
+                      minHeight: "48px",
+                      borderRadius: "12px",
+                      border: "1.5px solid #e2e8f0",
+                      backgroundColor: "#fff",
+                      boxShadow: "none",
+                      fontSize: "14px",
+                      color: "#0F172A",
+                      fontWeight: "500",
+                      transition: "all 0.2s",
+                    },
+                    divider: {
+                      width: "100%",
+                      margin: "20px 0",
+                    },
+                    dividerLine: {
+                      backgroundColor: "#e2e8f0",
+                    },
+                    dividerText: {
+                      color: "#94a3b8",
+                      fontSize: "13px",
+                    },
+                    footer: {
+                      width: "100%",
+                      marginTop: "16px",
+                    },
+                    footerAction: {
+                      justifyContent: "center",
+                      gap: "6px",
+                    },
+                    footerActionText: {
+                      fontSize: "13px",
+                      color: "#64748b",
+                    },
+                    footerActionLink: {
+                      fontSize: "13px",
+                      fontWeight: "600",
+                      color: "#2563EB",
+                      textDecoration: "none",
+                    },
+                    alert: {
+                      width: "100%",
+                      borderRadius: "12px",
+                      boxSizing: "border-box",
+                    },
+                    identityPreview: {
+                      width: "100%",
+                      borderRadius: "12px",
+                      boxSizing: "border-box",
+                    },
+                    identityPreviewText: {
+                      color: "#0F172A",
+                    },
+                    identityPreviewEditButton: {
+                      color: "#2563EB",
+                    },
+                  },
+                }}
+              />
+            </div>
+
+            <div style={styles.cardFooter}>
+              <Shield size={12} color="#94a3b8" />
+              <span>Secured by Clerk • Enterprise Authentication</span>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
         * {
+          margin: 0;
+          padding: 0;
           box-sizing: border-box;
         }
 
-        .login-page {
-          min-height: 100vh;
-          display: grid;
-          place-items: center;
-          padding: 24px;
-          position: relative;
-          overflow: hidden;
-          background:
-            radial-gradient(circle at top left, rgba(99, 102, 241, 0.18), transparent 30%),
-            radial-gradient(circle at bottom right, rgba(236, 72, 153, 0.18), transparent 30%),
-            linear-gradient(135deg, #0f172a 0%, #111827 45%, #1e293b 100%);
+        .clerk-wrapper,
+        .clerk-wrapper .cl-rootBox,
+        .clerk-wrapper .cl-cardBox,
+        .clerk-wrapper .cl-card,
+        .clerk-wrapper .cl-main {
+          width: 100% !important;
+          max-width: 100% !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          background: transparent !important;
+          border: none !important;
+          box-shadow: none !important;
         }
 
-        .bg-orb {
-          position: absolute;
-          border-radius: 999px;
-          filter: blur(18px);
-          opacity: 0.55;
-          animation: floatOrb 9s ease-in-out infinite;
-          pointer-events: none;
+        .clerk-wrapper .cl-form,
+        .clerk-wrapper .cl-formField,
+        .clerk-wrapper .cl-footer,
+        .clerk-wrapper .cl-socialButtons,
+        .clerk-wrapper .cl-formButtonPrimary,
+        .clerk-wrapper .cl-socialButtonsBlockButton {
+          width: 100% !important;
         }
 
-        .orb-1 {
-          width: 220px;
-          height: 220px;
-          background: rgba(99, 102, 241, 0.35);
-          top: 8%;
-          left: 8%;
+        .clerk-wrapper .cl-footer {
+          margin-top: 16px !important;
         }
 
-        .orb-2 {
-          width: 300px;
-          height: 300px;
-          background: rgba(236, 72, 153, 0.24);
-          bottom: 6%;
-          right: 10%;
-          animation-delay: 1.5s;
+        .clerk-wrapper .cl-formButtonPrimary:hover {
+          background: #1d4ed8 !important;
+          box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35) !important;
         }
 
-        .orb-3 {
-          width: 170px;
-          height: 170px;
-          background: rgba(34, 197, 94, 0.18);
-          top: 50%;
-          left: 58%;
-          animation-delay: 3s;
+        .clerk-wrapper .cl-socialButtonsBlockButton:hover {
+          background: #F8FAFC !important;
+          border-color: #2563EB !important;
         }
 
-        .grid-overlay {
-          position: absolute;
-          inset: 0;
-          background-image:
-            linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
-          background-size: 40px 40px;
-          mask-image: radial-gradient(circle at center, black 45%, transparent 90%);
-          pointer-events: none;
+        .clerk-wrapper .cl-formFieldInput:focus {
+          border-color: #2563EB !important;
+          box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1) !important;
         }
 
-        .login-shell {
-          position: relative;
-          z-index: 2;
-          width: 100%;
-          max-width: 1100px;
-          display: grid;
-          grid-template-columns: 1fr 460px;
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          border-radius: 28px;
-          overflow: hidden;
-          background: rgba(255, 255, 255, 0.06);
-          backdrop-filter: blur(20px);
-          -webkit-backdrop-filter: blur(20px);
-          box-shadow:
-            0 20px 80px rgba(0, 0, 0, 0.35),
-            inset 0 1px 0 rgba(255, 255, 255, 0.08);
-          animation: cardIn 0.8s ease;
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus {
+          -webkit-box-shadow: 0 0 0px 1000px #F8FAFC inset !important;
         }
 
-        .login-left {
-          position: relative;
-          padding: 56px;
-          color: white;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          background:
-            linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
-        }
-
-        .brand-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 10px;
-          width: fit-content;
-          padding: 10px 14px;
-          border-radius: 999px;
-          background: rgba(255, 255, 255, 0.08);
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          color: rgba(255,255,255,0.9);
-          font-size: 14px;
-          margin-bottom: 24px;
-          animation: fadeUp 0.8s ease;
-        }
-
-        .badge-dot {
-          width: 10px;
-          height: 10px;
-          border-radius: 999px;
-          background: linear-gradient(135deg, #22c55e, #3b82f6);
-          box-shadow: 0 0 18px rgba(59, 130, 246, 0.7);
-        }
-
-        .login-title {
-          font-size: clamp(2.2rem, 5vw, 4rem);
-          line-height: 1.02;
-          margin: 0 0 16px;
-          font-weight: 800;
-          letter-spacing: -0.04em;
-          animation: fadeUp 0.95s ease;
-        }
-
-        .gradient-text {
-          background: linear-gradient(135deg, #ffffff, #a5b4fc, #f9a8d4);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-        }
-
-        .login-text {
-          max-width: 540px;
-          margin: 0 0 28px;
-          color: rgba(255,255,255,0.74);
-          font-size: 1.02rem;
-          line-height: 1.7;
-          animation: fadeUp 1.1s ease;
-        }
-
-        .feature-list {
-          display: grid;
-          gap: 14px;
-          margin-top: 18px;
-          animation: fadeUp 1.2s ease;
-        }
-
-        .feature-item {
-          display: flex;
-          align-items: center;
-          gap: 14px;
-          padding: 14px 16px;
-          width: fit-content;
-          border-radius: 16px;
-          background: rgba(255,255,255,0.05);
-          border: 1px solid rgba(255,255,255,0.1);
-          color: rgba(255,255,255,0.88);
-          transition: transform 0.25s ease, background 0.25s ease, border-color 0.25s ease;
-        }
-
-        .feature-item:hover {
-          transform: translateX(6px);
-          background: rgba(255,255,255,0.08);
-          border-color: rgba(255,255,255,0.18);
-        }
-
-        .feature-icon {
-          width: 36px;
-          height: 36px;
-          display: grid;
-          place-items: center;
-          border-radius: 12px;
-          background: linear-gradient(135deg, rgba(99,102,241,0.35), rgba(236,72,153,0.3));
-          font-size: 16px;
-        }
-
-        .login-right {
-          position: relative;
-          padding: 32px 24px;
-          display: grid;
-          place-items: center;
-          background: rgba(255, 255, 255, 0.04);
-        }
-
-        .signin-card {
-          width: 100%;
-          display: flex;
-          justify-content: center;
-          animation: fadeUp 1s ease;
-        }
-
-        .signin-card > div {
-          width: 100%;
-        }
-
-        .login-glow {
-          position: absolute;
-          inset: auto;
-          width: 420px;
-          height: 420px;
-          border-radius: 999px;
-          background: radial-gradient(circle, rgba(99,102,241,0.2), transparent 60%);
-          filter: blur(30px);
-          z-index: 0;
-          pointer-events: none;
-        }
-
-        @keyframes floatOrb {
-          0%, 100% {
-            transform: translateY(0px) translateX(0px) scale(1);
-          }
-          50% {
-            transform: translateY(-18px) translateX(10px) scale(1.06);
-          }
-        }
-
-        @keyframes cardIn {
-          from {
-            opacity: 0;
-            transform: translateY(24px) scale(0.98);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
-        }
-
-        @keyframes fadeUp {
-          from {
-            opacity: 0;
-            transform: translateY(18px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @media (max-width: 920px) {
-          .login-shell {
-            grid-template-columns: 1fr;
-            max-width: 520px;
-          }
-
-          .login-left {
-            padding: 32px 28px 10px;
-          }
-
-          .login-right {
-            padding: 16px 18px 28px;
-          }
-
-          .login-title {
-            font-size: 2.2rem;
-          }
-
-          .feature-list {
-            grid-template-columns: 1fr;
-          }
-        }
-
-        @media (max-width: 640px) {
-          .login-page {
-            padding: 16px;
-          }
-
-          .login-left {
-            padding: 24px 20px 4px;
-          }
-
-          .login-right {
-            padding: 12px 12px 20px;
-          }
-
-          .feature-item {
-            width: 100%;
+        @media (max-width: 900px) {
+          .clerk-wrapper,
+          .clerk-wrapper .cl-rootBox,
+          .clerk-wrapper .cl-cardBox,
+          .clerk-wrapper .cl-card {
+            max-width: 100% !important;
           }
         }
       `}</style>
-
-      <div className="login-page">
-        <div className="bg-orb orb-1" />
-        <div className="bg-orb orb-2" />
-        <div className="bg-orb orb-3" />
-        <div className="grid-overlay" />
-
-        <div className="login-shell">
-          <div className="login-left">
-            <div className="brand-badge">
-              <span className="badge-dot" />
-              Secure Admin Access
-            </div>
-
-            <h1 className="login-title">
-              Welcome to <span className="gradient-text">Naman Enterprises</span>
-            </h1>
-
-            <p className="login-text">
-              Sign in to manage products, monitor orders, and keep your inventory under control with a cleaner,
-              faster admin workflow.
-            </p>
-
-            <div className="feature-list">
-              <div className="feature-item">
-                <div className="feature-icon">📦</div>
-                <div>Track products and stock in one place</div>
-              </div>
-
-              <div className="feature-item">
-                <div className="feature-icon">⚡</div>
-                <div>Fast access to orders and daily operations</div>
-              </div>
-
-              <div className="feature-item">
-                <div className="feature-icon">🔒</div>
-                <div>Protected admin-only authentication flow</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="login-right">
-            <div className="login-glow" />
-            <div className="signin-card">
-              <SignIn path="/login" routing="path" fallbackRedirectUrl="/" />
-            </div>
-          </div>
-        </div>
-      </div>
-    </>
+    </div>
   );
 }
+
+const styles = {
+  page: {
+    minHeight: "100vh",
+    background: "#F8FAFC",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontFamily: "'Inter', sans-serif",
+    position: "relative",
+    padding: "24px",
+    overflow: "hidden",
+  },
+  bgCircle1: {
+    position: "absolute",
+    top: "-200px",
+    right: "-200px",
+    width: "600px",
+    height: "600px",
+    borderRadius: "50%",
+    background: "radial-gradient(circle, rgba(37, 99, 235, 0.06) 0%, transparent 70%)",
+    pointerEvents: "none",
+  },
+  bgCircle2: {
+    position: "absolute",
+    bottom: "-150px",
+    left: "-150px",
+    width: "500px",
+    height: "500px",
+    borderRadius: "50%",
+    background: "radial-gradient(circle, rgba(56, 189, 248, 0.05) 0%, transparent 70%)",
+    pointerEvents: "none",
+  },
+  container: {
+    display: "flex",
+    maxWidth: "1100px",
+    width: "100%",
+    background: "#ffffff",
+    borderRadius: "24px",
+    overflow: "hidden",
+    boxShadow: "0 20px 60px rgba(15, 23, 42, 0.08), 0 1px 3px rgba(15, 23, 42, 0.04)",
+    position: "relative",
+    zIndex: 1,
+    border: "1px solid rgba(226, 232, 240, 0.6)",
+  },
+  leftSection: {
+    flex: 1,
+    padding: "48px",
+    background: "linear-gradient(135deg, #eff6ff 0%, #F8FAFC 100%)",
+    borderRight: "1px solid #e2e8f0",
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
+  },
+  logo: {
+    display: "flex",
+    alignItems: "center",
+    gap: "14px",
+    marginBottom: "56px",
+  },
+  logoIcon: {
+    width: "48px",
+    height: "48px",
+    background: "#2563EB",
+    borderRadius: "14px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    color: "#fff",
+    boxShadow: "0 4px 12px rgba(37, 99, 235, 0.25)",
+  },
+  logoName: {
+    fontSize: "17px",
+    fontWeight: "800",
+    color: "#0F172A",
+    margin: 0,
+    letterSpacing: "0.5px",
+  },
+  logoSub: {
+    fontSize: "12px",
+    color: "#64748b",
+    margin: "2px 0 0",
+    letterSpacing: "0.5px",
+    fontWeight: "500",
+  },
+  quoteSection: {
+    marginBottom: "48px",
+  },
+  quoteText: {
+    fontSize: "26px",
+    fontWeight: "700",
+    color: "#0F172A",
+    lineHeight: 1.35,
+    margin: "0 0 16px",
+    letterSpacing: "-0.5px",
+  },
+  quoteLine: {
+    width: "48px",
+    height: "3px",
+    background: "#2563EB",
+    borderRadius: "2px",
+  },
+  features: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "20px",
+    marginBottom: "48px",
+  },
+  feature: {
+    display: "flex",
+    alignItems: "center",
+    gap: "14px",
+  },
+  featureIcon: {
+    width: "40px",
+    height: "40px",
+    borderRadius: "10px",
+    background: "rgba(37, 99, 235, 0.08)",
+    color: "#2563EB",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  featureTitle: {
+    fontSize: "14px",
+    fontWeight: "600",
+    color: "#0F172A",
+    marginBottom: "1px",
+  },
+  featureDesc: {
+    fontSize: "13px",
+    color: "#64748b",
+    fontWeight: "400",
+  },
+  stats: {
+    display: "flex",
+    alignItems: "center",
+    gap: "20px",
+    padding: "24px",
+    background: "#ffffff",
+    borderRadius: "16px",
+    border: "1px solid #e2e8f0",
+  },
+  statBox: {
+    flex: 1,
+    textAlign: "center",
+  },
+  statDivider: {
+    width: "1px",
+    height: "40px",
+    background: "#e2e8f0",
+  },
+  statNum: {
+    display: "block",
+    fontSize: "22px",
+    fontWeight: "800",
+    color: "#2563EB",
+    letterSpacing: "-0.5px",
+  },
+  statLabel: {
+    display: "block",
+    fontSize: "11px",
+    color: "#94a3b8",
+    marginTop: "4px",
+    fontWeight: "500",
+  },
+  rightSection: {
+    flex: 0.9,
+    padding: "48px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "#ffffff",
+  },
+  loginCard: {
+    width: "100%",
+    maxWidth: "420px",
+    margin: "0 auto",
+  },
+  cardHeader: {
+    marginBottom: "32px",
+    textAlign: "center",
+  },
+  welcomeIcon: {
+    width: "48px",
+    height: "48px",
+    borderRadius: "14px",
+    background: "rgba(37, 99, 235, 0.08)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    margin: "0 auto 20px",
+  },
+  cardTitle: {
+    fontSize: "24px",
+    fontWeight: "700",
+    color: "#0F172A",
+    marginBottom: "8px",
+    letterSpacing: "-0.3px",
+  },
+  cardSub: {
+    fontSize: "14px",
+    color: "#64748b",
+    fontWeight: "400",
+  },
+  errorAlert: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    padding: "12px 16px",
+    background: "#fef2f2",
+    borderRadius: "12px",
+    fontSize: "13px",
+    color: "#dc2626",
+    marginBottom: "24px",
+    border: "1px solid #fecaca",
+  },
+  clerkWrapper: {
+    width: "100%",
+    maxWidth: "100%",
+    margin: "0 auto",
+  },
+  cardFooter: {
+    marginTop: "32px",
+    textAlign: "center",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "6px",
+    fontSize: "11px",
+    color: "#94a3b8",
+    paddingTop: "24px",
+    borderTop: "1px solid #f1f5f9",
+    fontWeight: "400",
+  },
+};
 
 export default Login;

@@ -103,7 +103,7 @@ function PrintReceipt() {
 <div style={styles.header}>
   <div style={styles.storeIcon}>🏪</div>
   <h1 style={styles.storeName}>Naman Enterprises, Ajmatpur</h1>
-  <p style={styles.tagline}>Your Trusted Partner in Quality Products</p>
+  <p style={styles.tagline}>Your Trusted Source for Quality Products</p>
   
   {/* Store Contact Information */}
   <p style={styles.storePhone}>📞 {import.meta.env.VITE_STORE_PHONE}</p>
@@ -193,7 +193,7 @@ function PrintReceipt() {
           </div>
           <div style={styles.summaryRow}>
             <span style={styles.summaryLabel}>Amount Paid:</span>
-            <span style={{...styles.summaryValue, color: '#16a34a'}}>
+            <span style={{...styles.summaryValue, color: 'var(--success)'}}>
               {formatCurrency(order.paid_amount)}
             </span>
           </div>
@@ -202,7 +202,7 @@ function PrintReceipt() {
             <span style={styles.balanceLabel}>Balance Due:</span>
             <span style={{
               ...styles.balanceAmount,
-              color: Number(order.remaining_amount) > 0 ? '#dc2626' : '#16a34a'
+              color: Number(order.remaining_amount) > 0 ? 'var(--danger)' : 'var(--success)'
             }}>
               {formatCurrency(order.remaining_amount)}
             </span>
@@ -214,8 +214,8 @@ function PrintReceipt() {
           <span style={styles.paymentStatusLabel}>Payment Status:</span>
           <span style={{
             ...styles.paymentStatusBadge,
-            backgroundColor: Number(order.remaining_amount) === 0 ? '#22c55e20' : '#f59e0b20',
-            color: Number(order.remaining_amount) === 0 ? '#16a34a' : '#b45309'
+            backgroundColor: Number(order.remaining_amount) === 0 ? 'rgba(22, 163, 74, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+            color: Number(order.remaining_amount) === 0 ? 'var(--success)' : 'var(--warning)'
           }}>
             {Number(order.remaining_amount) === 0 ? 'PAID' : 'PARTIAL PAYMENT'}
           </span>
@@ -282,13 +282,13 @@ const styles = {
   spinner: {
     width: "48px",
     height: "48px",
-    border: "4px solid #e2e8f0",
-    borderTop: "4px solid #3b82f6",
+    border: "4px solid var(--bg-sidebar)",
+    borderTop: "4px solid var(--primary)",
     borderRadius: "50%",
     animation: "spin 1s linear infinite"
   },
   loadingText: {
-    color: "#64748b",
+    color: "var(--text-muted)",
     fontSize: "16px"
   },
   receipt: {
@@ -311,13 +311,13 @@ const styles = {
   storeName: {
     fontSize: "28px",
     fontWeight: "700",
-    color: "#0f172a",
+    color: "var(--text-heading)",
     margin: "0 0 8px 0",
     letterSpacing: "-0.02em"
   },
   tagline: {
     fontSize: "16px",
-    color: "#475569",
+    color: "var(--text-muted)",
     margin: "0 0 12px 0",
     fontStyle: "italic"
   },
@@ -328,18 +328,18 @@ const styles = {
   },
   storeAddress: {
     fontSize: "14px",
-    color: "#64748b",
+    color: "var(--text-muted)",
     margin: "4px 0"
   },
   gstin: {
     fontSize: "14px",
-    color: "#64748b",
+    color: "var(--text-muted)",
     margin: "4px 0",
     fontFamily: "monospace"
   },
   divider: {
     height: "2px",
-    background: "linear-gradient(90deg, transparent, #3b82f6, transparent)",
+    background: "linear-gradient(90deg, transparent, var(--primary), transparent)",
     margin: "24px 0"
   },
   dividerLight: {
@@ -372,11 +372,11 @@ const styles = {
     fontSize: "14px"
   },
   infoLabel: {
-    color: "#64748b",
+    color: "var(--text-muted)",
     fontWeight: "500"
   },
   infoValue: {
-    color: "#0f172a",
+    color: "var(--text-heading)",
     fontWeight: "600"
   },
   table: {
@@ -400,17 +400,17 @@ const styles = {
   tableCell: {
     padding: "12px 8px",
     fontSize: "14px",
-    color: "#1e293b"
+    color: "var(--text-main)"
   },
   productName: {
     fontWeight: "500"
   },
   productVariant: {
     fontSize: "12px",
-    color: "#64748b"
+    color: "var(--text-muted)"
   },
   summarySection: {
-    background: "#f8fafc",
+    background: "var(--bg-sidebar)",
     padding: "20px",
     borderRadius: "12px",
     marginBottom: "20px"
@@ -442,13 +442,13 @@ const styles = {
     alignItems: "center",
     marginBottom: "24px",
     padding: "12px 16px",
-    background: "#f8fafc",
+    background: "var(--bg-sidebar)",
     borderRadius: "8px"
   },
   paymentStatusLabel: {
     fontSize: "14px",
     fontWeight: "500",
-    color: "#475569"
+    color: "var(--text-muted)"
   },
   paymentStatusBadge: {
     padding: "6px 16px",
@@ -482,19 +482,19 @@ const styles = {
   thankYouText: {
     fontSize: "18px",
     fontWeight: "600",
-    color: "#0f172a",
+    color: "var(--text-heading)",
     margin: "0 0 4px 0"
   },
   thankYouSubtext: {
     fontSize: "12px",
-    color: "#94a3b8",
+    color: "var(--text-light)",
     margin: 0
   },
   terms: {
     textAlign: "center",
     fontSize: "11px",
-    color: "#94a3b8",
-    borderTop: "1px solid #e2e8f0",
+    color: "var(--text-light)",
+    borderTop: "1px solid var(--bg-sidebar)",
     paddingTop: "16px"
   },
   termsText: {
@@ -524,12 +524,12 @@ const styles = {
   },
   closeButton: {
     padding: "14px 32px",
-    background: "white",
-    border: "1px solid #e2e8f0",
+    background: "var(--bg-card)",
+    border: "1px solid var(--bg-sidebar)",
     borderRadius: "12px",
     fontSize: "16px",
     fontWeight: "500",
-    color: "#475569",
+    color: "var(--text-muted)",
     cursor: "pointer",
     transition: "all 0.2s ease"
   },
