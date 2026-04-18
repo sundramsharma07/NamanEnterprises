@@ -71,22 +71,17 @@ function PrintReceipt() {
   return (
     <div style={styles.container}>
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+        
         @media print {
-          .no-print {
-            display: none !important;
-          }
-          .print-only {
-            display: block !important;
-          }
-          body {
-            background: white;
-            padding: 0;
-            margin: 0;
-          }
-          #receipt {
-            box-shadow: none !important;
-            border: none !important;
-            padding: 0.5in !important;
+          .no-print { display: none !important; }
+          body { background: white; padding: 0; margin: 0; }
+          #receipt { 
+            box-shadow: none !important; 
+            border: none !important; 
+            padding: 0.2in !important;
+            width: 100% !important;
+            max-width: none !important;
           }
         }
         
@@ -94,72 +89,81 @@ function PrintReceipt() {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
         }
+
+        #receipt {
+          position: relative;
+          overflow: hidden;
+        }
       `}</style>
 
       {/* Receipt Content */}
       <div id="receipt" style={styles.receipt}>
-        {/* Store Header with Logo/Icon */}
-        {/* Store Header with Logo/Icon */}
-<div style={styles.header}>
-  <div style={styles.storeIcon}>🏪</div>
-  <h1 style={styles.storeName}>Naman Enterprises, Ajmatpur</h1>
-  <p style={styles.tagline}>Your Trusted Source for Quality Products</p>
-  
-  {/* Store Contact Information */}
-  <p style={styles.storePhone}>📞 {import.meta.env.VITE_STORE_PHONE}</p>
-  <p style={styles.storeAddress}>📍 {import.meta.env.VITE_STORE_ADDRESS}</p>
-  <p style={styles.gstin}>GSTIN: {import.meta.env.VITE_STORE_GSTIN}</p>
-</div>
+        {/* Watermark */}
+        <div style={styles.watermarkContainer}>
+          <img src="/logo.png" style={styles.watermark} alt="" />
+        </div>
 
-        <div style={styles.divider} />
-
-        {/* Receipt Title */}
-        <h2 style={styles.receiptTitle}>SALES RECEIPT</h2>
-
-        {/* Order Info Grid */}
-        <div style={styles.infoGrid}>
-          <div style={styles.infoColumn}>
-            <div style={styles.infoRow}>
-              <span style={styles.infoLabel}>Receipt No:</span>
-              <span style={styles.infoValue}>#{order.order_id}</span>
+        {/* Header Section */}
+        <div style={styles.header}>
+          <div style={styles.headerLeft}>
+            <div style={styles.logoWrapper}>
+              <img src="/logo.png" style={styles.logoImage} alt="Naman Enterprises Logo" />
             </div>
-            <div style={styles.infoRow}>
-              <span style={styles.infoLabel}>Date:</span>
-              <span style={styles.infoValue}>{formatDate(order.created_at)}</span>
+            <div style={styles.storeDetails}>
+              <h1 style={styles.storeName}>Naman Enterprises</h1>
+              <p style={styles.storeSubtext}>Ajmatpur, Building Materials Store</p>
+              <div style={styles.contactInfo}>
+                <span style={styles.contactItem}>📞 {import.meta.env.VITE_STORE_PHONE || "Store Phone"}</span>
+                <span style={styles.contactItem}>📍 {import.meta.env.VITE_STORE_ADDRESS || "Store Address"}</span>
+              </div>
+              {import.meta.env.VITE_STORE_GSTIN && (
+                <p style={styles.gstin}>GSTIN: {import.meta.env.VITE_STORE_GSTIN}</p>
+              )}
             </div>
           </div>
-          <div style={styles.infoColumn}>
-            <div style={styles.infoRow}>
-              <span style={styles.infoLabel}>Customer:</span>
-              <span style={styles.infoValue}>{order.customer_name || 'Walk-in Customer'}</span>
+          <div style={styles.headerRight}>
+            <div style={styles.receiptBadge}>SALES RECEIPT</div>
+            <div style={styles.orderKeyInfo}>
+              <div style={styles.keyRow}>
+                <span style={styles.keyLabel}>Invoice No :</span>
+                <span style={styles.keyValue}>#{order.order_id}</span>
+              </div>
+              <div style={styles.keyRow}>
+                <span style={styles.keyLabel}>Date :</span>
+                <span style={styles.keyValue}>{formatDate(order.created_at)}</span>
+              </div>
             </div>
-            {order.customer_phone && (
-              <div style={styles.infoRow}>
-                <span style={styles.infoLabel}>Phone:</span>
-                <span style={styles.infoValue}>{order.customer_phone}</span>
-              </div>
-            )}
-            {order.customer_address && (
-              <div style={styles.infoRow}>
-                <span style={styles.infoLabel}>Address:</span>
-                <span style={styles.infoValue}>{order.customer_address}</span>
-              </div>
-            )}
           </div>
         </div>
 
         <div style={styles.divider} />
 
+        {/* Customer Info */}
+        <div style={styles.customerSection}>
+          <div style={styles.sectionTitle}>BILL TO:</div>
+          <div style={styles.customerInfoGrid}>
+            <div style={styles.customerMain}>
+              <p style={styles.customerName}>{order.customer_name || 'Walk-in Customer'}</p>
+              {order.customer_phone && <p style={styles.customerContact}>📞 {order.customer_phone}</p>}
+            </div>
+            {order.customer_address && (
+              <div style={styles.customerAddressBox}>
+                <p style={styles.customerAddress}>{order.customer_address}</p>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Items Table */}
         <table style={styles.table}>
           <thead>
             <tr>
-              <th style={styles.tableHeader}>S.No</th>
-              <th style={styles.tableHeader}>Product</th>
-              <th style={styles.tableHeader}>Qty</th>
-              <th style={styles.tableHeader}>Unit</th>
-              <th style={styles.tableHeader}>Price</th>
-              <th style={styles.tableHeader}>Total</th>
+              <th style={{...styles.tableHeader, width: '40px'}}>#</th>
+              <th style={styles.tableHeader}>Item Description</th>
+              <th style={{...styles.tableHeader, textAlign: 'center'}}>Qty</th>
+              <th style={{...styles.tableHeader, textAlign: 'center'}}>Unit</th>
+              <th style={{...styles.tableHeader, textAlign: 'right'}}>Rate</th>
+              <th style={{...styles.tableHeader, textAlign: 'right'}}>Total</th>
             </tr>
           </thead>
           <tbody>
@@ -177,7 +181,7 @@ function PrintReceipt() {
                 <td style={{...styles.tableCell, textAlign: 'center'}}>{item.quantity}</td>
                 <td style={{...styles.tableCell, textAlign: 'center'}}>{item.unit}</td>
                 <td style={{...styles.tableCell, textAlign: 'right'}}>{formatCurrency(item.price)}</td>
-                <td style={{...styles.tableCell, textAlign: 'right', fontWeight: '500'}}>
+                <td style={{...styles.tableCell, textAlign: 'right', fontWeight: '600'}}>
                   {formatCurrency(item.line_total)}
                 </td>
               </tr>
@@ -185,72 +189,66 @@ function PrintReceipt() {
           </tbody>
         </table>
 
-        {/* Summary Section */}
-        <div style={styles.summarySection}>
-          <div style={styles.summaryRow}>
-            <span style={styles.summaryLabel}>Subtotal:</span>
-            <span style={styles.summaryValue}>{formatCurrency(order.total_amount)}</span>
-          </div>
-          <div style={styles.summaryRow}>
-            <span style={styles.summaryLabel}>Amount Paid:</span>
-            <span style={{...styles.summaryValue, color: 'var(--success)'}}>
-              {formatCurrency(order.paid_amount)}
-            </span>
-          </div>
-          <div style={styles.dividerLight} />
-          <div style={{...styles.summaryRow, fontSize: '18px'}}>
-            <span style={styles.balanceLabel}>Balance Due:</span>
-            <span style={{
-              ...styles.balanceAmount,
-              color: Number(order.remaining_amount) > 0 ? 'var(--danger)' : 'var(--success)'
-            }}>
-              {formatCurrency(order.remaining_amount)}
-            </span>
-          </div>
-        </div>
-
-        {/* Payment Status */}
-        <div style={styles.paymentStatus}>
-          <span style={styles.paymentStatusLabel}>Payment Status:</span>
-          <span style={{
-            ...styles.paymentStatusBadge,
-            backgroundColor: Number(order.remaining_amount) === 0 ? 'rgba(22, 163, 74, 0.1)' : 'rgba(245, 158, 11, 0.1)',
-            color: Number(order.remaining_amount) === 0 ? 'var(--success)' : 'var(--warning)'
-          }}>
-            {Number(order.remaining_amount) === 0 ? 'PAID' : 'PARTIAL PAYMENT'}
-          </span>
-        </div>
-
-        <div style={styles.divider} />
-
-        {/* Footer with Signatures */}
-        <div style={styles.footer}>
-          <div style={styles.signatureBox}>
-            <div style={styles.signatureLine}></div>
-            <p style={styles.signatureText}>Customer Signature</p>
+        {/* Totals Section */}
+        <div style={styles.summaryContainer}>
+          <div style={styles.summaryLeft}>
+            <div style={styles.paymentStatusBadge}>
+              <span style={styles.statusLabel}>Payment Status:</span>
+              <span style={{
+                ...styles.statusValue,
+                color: Number(order.remaining_amount) === 0 ? '#059669' : '#d97706'
+              }}>
+                {Number(order.remaining_amount) === 0 ? '● FULLY PAID' : '● PARTIAL'}
+              </span>
+            </div>
+            <div style={styles.terms}>
+              <p style={styles.termsTitle}>Terms & Conditions:</p>
+              <p style={styles.termsItem}>* Goods once sold will not be taken back.</p>
+              <p style={styles.termsItem}>* Subject to local jurisdiction.</p>
+            </div>
           </div>
           
-          <div style={styles.signatureBox}>
-            <div style={styles.signatureLine}></div>
-            <p style={styles.signatureText}>Authorized Signatory</p>
+          <div style={styles.summaryRight}>
+            <div style={styles.summaryRow}>
+              <span style={styles.summaryLabel}>Sub Total</span>
+              <span style={styles.summaryValue}>{formatCurrency(order.total_amount)}</span>
+            </div>
+            <div style={styles.summaryRow}>
+              <span style={styles.summaryLabel}>Total Paid</span>
+              <span style={{...styles.summaryValue, color: '#059669'}}>{formatCurrency(order.paid_amount)}</span>
+            </div>
+            <div style={styles.totalDivider} />
+            <div style={styles.finalTotalRow}>
+              <span style={styles.finalTotalLabel}>Balance Due</span>
+              <span style={{
+                ...styles.finalTotalValue,
+                color: Number(order.remaining_amount) > 0 ? '#dc2626' : '#059669'
+              }}>
+                {formatCurrency(order.remaining_amount)}
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* Thank You Message */}
-        <div style={styles.thankYou}>
-          <p style={styles.thankYouText}>Thank you for your business!</p>
-          <p style={styles.thankYouSubtext}>This is a computer generated receipt - no signature required</p>
-        </div>
+        <div style={styles.footerSpacing} />
 
-        {/* Terms and Conditions */}
-        <div style={styles.terms}>
-          <p style={styles.termsText}>
-            * Goods once sold will not be taken back. * Subject to local jurisdiction.
-          </p>
+        {/* Footer */}
+        <div style={styles.footer}>
+          <div style={styles.signatureSection}>
+            <div style={styles.signatureBox}>
+              <div style={styles.signatureLine} />
+              <p style={styles.signatureText}>Authorized Signatory</p>
+            </div>
+          </div>
+          
+          <div style={styles.gratitudeSection}>
+            <p style={styles.thankYou}>Thank you for choosing Naman Enterprises!</p>
+            <p style={styles.computerGenerated}>This is a computer generated receipt</p>
+          </div>
         </div>
       </div>
 
-      {/* Print Button */}
+      {/* Control Buttons */}
       <div style={styles.printSection} className="no-print">
         <button onClick={() => window.print()} style={styles.printButton}>
           <span style={styles.printIcon}>🖨️</span>
@@ -267,9 +265,12 @@ function PrintReceipt() {
 const styles = {
   container: {
     minHeight: "100vh",
-    background: "#f1f5f9",
-    padding: "30px",
-    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+    background: "#f8fafc",
+    padding: "40px 20px",
+    fontFamily: "'Outfit', sans-serif",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center"
   },
   loadingContainer: {
     display: "flex",
@@ -282,268 +283,380 @@ const styles = {
   spinner: {
     width: "48px",
     height: "48px",
-    border: "4px solid var(--bg-sidebar)",
-    borderTop: "4px solid var(--primary)",
+    border: "4px solid #e2e8f0",
+    borderTop: "4px solid #2563eb",
     borderRadius: "50%",
     animation: "spin 1s linear infinite"
   },
   loadingText: {
-    color: "var(--text-muted)",
+    color: "#64748b",
     fontSize: "16px"
   },
   receipt: {
-    maxWidth: "800px",
-    margin: "0 auto",
+    width: "100%",
+    maxWidth: "850px",
     background: "white",
-    padding: "40px",
-    borderRadius: "20px",
-    boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)",
-    border: "1px solid #e2e8f0"
+    padding: "60px",
+    borderRadius: "8px",
+    boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
+    position: "relative",
+    border: "1px solid #f1f5f9"
+  },
+  watermarkContainer: {
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    transform: "translate(-50%, -50%) rotate(-15deg)",
+    opacity: "0.04",
+    width: "60%",
+    pointerEvents: "none",
+    zIndex: 0,
+    display: "flex",
+    justifyContent: "center"
+  },
+  watermark: {
+    width: "100%",
+    height: "auto",
+    filter: "grayscale(100%)"
   },
   header: {
-    textAlign: "center",
-    marginBottom: "24px"
-  },
-  storeIcon: {
-    fontSize: "48px",
-    marginBottom: "12px"
-  },
-  storeName: {
-    fontSize: "28px",
-    fontWeight: "700",
-    color: "var(--text-heading)",
-    margin: "0 0 8px 0",
-    letterSpacing: "-0.02em"
-  },
-  tagline: {
-    fontSize: "16px",
-    color: "var(--text-muted)",
-    margin: "0 0 12px 0",
-    fontStyle: "italic"
-  },
-  storePhone: {
-    fontSize: "14px",
-    color: "#64748b",
-    margin: "4px 0"
-  },
-  storeAddress: {
-    fontSize: "14px",
-    color: "var(--text-muted)",
-    margin: "4px 0"
-  },
-  gstin: {
-    fontSize: "14px",
-    color: "var(--text-muted)",
-    margin: "4px 0",
-    fontFamily: "monospace"
-  },
-  divider: {
-    height: "2px",
-    background: "linear-gradient(90deg, transparent, var(--primary), transparent)",
-    margin: "24px 0"
-  },
-  dividerLight: {
-    height: "1px",
-    background: "#e2e8f0",
-    margin: "16px 0"
-  },
-  receiptTitle: {
-    textAlign: "center",
-    fontSize: "20px",
-    fontWeight: "600",
-    color: "#1e293b",
-    marginBottom: "24px",
-    letterSpacing: "1px"
-  },
-  infoGrid: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "24px",
-    marginBottom: "20px"
-  },
-  infoColumn: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "8px"
-  },
-  infoRow: {
     display: "flex",
     justifyContent: "space-between",
-    fontSize: "14px"
+    alignItems: "flex-start",
+    marginBottom: "32px",
+    position: "relative",
+    zIndex: 1
   },
-  infoLabel: {
-    color: "var(--text-muted)",
+  headerLeft: {
+    display: "flex",
+    gap: "20px",
+    alignItems: "center"
+  },
+  logoWrapper: {
+    width: "70px",
+    height: "70px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  logoImage: {
+    width: "100%",
+    height: "auto",
+    objectFit: "contain"
+  },
+  storeDetails: {
+    display: "flex",
+    flexDirection: "column"
+  },
+  storeName: {
+    fontSize: "26px",
+    fontWeight: "800",
+    color: "#0f172a",
+    margin: 0,
+    letterSpacing: "-0.5px"
+  },
+  storeSubtext: {
+    fontSize: "14px",
+    color: "#64748b",
+    margin: "2px 0 8px 0",
     fontWeight: "500"
   },
-  infoValue: {
-    color: "var(--text-heading)",
+  contactInfo: {
+    display: "flex",
+    gap: "16px",
+    fontSize: "12px",
+    color: "#475569"
+  },
+  contactItem: {
+    display: "flex",
+    alignItems: "center",
+    gap: "4px"
+  },
+  gstin: {
+    fontSize: "12px",
+    color: "#475569",
+    margin: "4px 0 0 0",
+    fontWeight: "600",
+    fontFamily: "monospace"
+  },
+  headerRight: {
+    textAlign: "right"
+  },
+  receiptBadge: {
+    display: "inline-block",
+    background: "#f1f5f9",
+    color: "#475569",
+    padding: "6px 16px",
+    borderRadius: "6px",
+    fontSize: "14px",
+    fontWeight: "700",
+    marginBottom: "16px",
+    letterSpacing: "1px"
+  },
+  orderKeyInfo: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "4px"
+  },
+  keyRow: {
+    display: "flex",
+    justifyContent: "flex-end",
+    gap: "8px",
+    fontSize: "13px"
+  },
+  keyLabel: {
+    color: "#94a3b8",
+    fontWeight: "500"
+  },
+  keyValue: {
+    color: "#0f172a",
     fontWeight: "600"
+  },
+  divider: {
+    height: "1px",
+    background: "#e2e8f0",
+    margin: "0 0 32px 0",
+    position: "relative",
+    zIndex: 1
+  },
+  customerSection: {
+    marginBottom: "32px",
+    position: "relative",
+    zIndex: 1
+  },
+  sectionTitle: {
+    fontSize: "12px",
+    fontWeight: "700",
+    color: "#94a3b8",
+    textTransform: "uppercase",
+    letterSpacing: "1px",
+    marginBottom: "12px"
+  },
+  customerInfoGrid: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: "40px"
+  },
+  customerMain: {
+    flex: 1
+  },
+  customerName: {
+    fontSize: "18px",
+    fontWeight: "700",
+    color: "#0f172a",
+    margin: "0 0 4px 0"
+  },
+  customerContact: {
+    fontSize: "14px",
+    color: "#64748b",
+    margin: 0
+  },
+  customerAddressBox: {
+    flex: 1,
+    padding: "12px",
+    background: "#f8fafc",
+    borderRadius: "8px",
+    borderLeft: "3px solid #e2e8f0"
+  },
+  customerAddress: {
+    fontSize: "13px",
+    color: "#475569",
+    margin: 0,
+    lineHeight: "1.5"
   },
   table: {
     width: "100%",
     borderCollapse: "collapse",
-    marginBottom: "24px"
+    marginBottom: "40px",
+    position: "relative",
+    zIndex: 1
   },
   tableHeader: {
-    padding: "12px 8px",
+    padding: "14px 12px",
+    background: "#f8fafc",
     textAlign: "left",
-    fontSize: "13px",
-    fontWeight: "600",
+    fontSize: "12px",
+    fontWeight: "700",
     color: "#475569",
     textTransform: "uppercase",
     letterSpacing: "0.5px",
     borderBottom: "2px solid #e2e8f0"
   },
   tableRow: {
-    borderBottom: "1px solid #e2e8f0"
+    borderBottom: "1px solid #f1f5f9"
   },
   tableCell: {
-    padding: "12px 8px",
+    padding: "16px 12px",
     fontSize: "14px",
-    color: "var(--text-main)"
+    color: "#334155"
   },
   productName: {
-    fontWeight: "500"
+    fontWeight: "600",
+    color: "#0f172a"
   },
   productVariant: {
     fontSize: "12px",
-    color: "var(--text-muted)"
+    color: "#94a3b8"
   },
-  summarySection: {
-    background: "var(--bg-sidebar)",
-    padding: "20px",
-    borderRadius: "12px",
-    marginBottom: "20px"
+  summaryContainer: {
+    display: "flex",
+    justifyContent: "space-between",
+    position: "relative",
+    zIndex: 1
+  },
+  summaryLeft: {
+    maxWidth: "300px"
+  },
+  paymentStatusBadge: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    marginBottom: "24px"
+  },
+  statusLabel: {
+    fontSize: "13px",
+    fontWeight: "500",
+    color: "#94a3b8"
+  },
+  statusValue: {
+    fontSize: "13px",
+    fontWeight: "700"
+  },
+  terms: {
+    marginTop: "20px"
+  },
+  termsTitle: {
+    fontSize: "12px",
+    fontWeight: "700",
+    color: "#475569",
+    marginBottom: "8px"
+  },
+  termsItem: {
+    fontSize: "11px",
+    color: "#94a3b8",
+    margin: "2px 0"
+  },
+  summaryRight: {
+    width: "280px",
+    background: "#f8fafc",
+    padding: "24px",
+    borderRadius: "12px"
   },
   summaryRow: {
     display: "flex",
     justifyContent: "space-between",
-    marginBottom: "10px",
-    fontSize: "16px"
+    margin: "12px 0",
+    fontSize: "14px"
   },
   summaryLabel: {
-    color: "#475569"
+    color: "#64748b",
+    fontWeight: "500"
   },
   summaryValue: {
-    fontWeight: "600",
-    color: "#0f172a"
-  },
-  balanceLabel: {
-    fontWeight: "600",
-    color: "#0f172a"
-  },
-  balanceAmount: {
-    fontSize: "20px",
+    color: "#0f172a",
     fontWeight: "700"
   },
-  paymentStatus: {
+  totalDivider: {
+    height: "1px",
+    background: "#e2e8f0",
+    margin: "16px 0"
+  },
+  finalTotalRow: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: "24px",
-    padding: "12px 16px",
-    background: "var(--bg-sidebar)",
-    borderRadius: "8px"
+    marginTop: "8px"
   },
-  paymentStatusLabel: {
-    fontSize: "14px",
-    fontWeight: "500",
-    color: "var(--text-muted)"
+  finalTotalLabel: {
+    fontSize: "16px",
+    fontWeight: "800",
+    color: "#0f172a"
   },
-  paymentStatusBadge: {
-    padding: "6px 16px",
-    borderRadius: "20px",
-    fontSize: "13px",
-    fontWeight: "600"
+  finalTotalValue: {
+    fontSize: "20px",
+    fontWeight: "800"
+  },
+  footerSpacing: {
+    height: "60px"
   },
   footer: {
     display: "flex",
     justifyContent: "space-between",
-    marginBottom: "32px"
+    alignItems: "flex-end",
+    position: "relative",
+    zIndex: 1
   },
-  signatureBox: {
-    width: "200px",
+  signatureSection: {
     textAlign: "center"
   },
+  signatureBox: {
+    width: "220px"
+  },
   signatureLine: {
-    borderBottom: "2px dashed #94a3b8",
-    marginBottom: "8px",
-    height: "30px"
+    borderBottom: "1.5px solid #cbd5e1",
+    marginBottom: "12px"
   },
   signatureText: {
-    fontSize: "14px",
+    fontSize: "13px",
+    fontWeight: "600",
     color: "#64748b",
-    margin: 0
+    textTransform: "uppercase",
+    letterSpacing: "1px"
+  },
+  gratitudeSection: {
+    textAlign: "right"
   },
   thankYou: {
-    textAlign: "center",
-    marginBottom: "16px"
-  },
-  thankYouText: {
-    fontSize: "18px",
-    fontWeight: "600",
-    color: "var(--text-heading)",
+    fontSize: "16px",
+    fontWeight: "700",
+    color: "#0f172a",
     margin: "0 0 4px 0"
   },
-  thankYouSubtext: {
-    fontSize: "12px",
-    color: "var(--text-light)",
-    margin: 0
-  },
-  terms: {
-    textAlign: "center",
+  computerGenerated: {
     fontSize: "11px",
-    color: "var(--text-light)",
-    borderTop: "1px solid var(--bg-sidebar)",
-    paddingTop: "16px"
-  },
-  termsText: {
+    color: "#94a3b8",
     margin: 0
   },
   printSection: {
-    maxWidth: "800px",
-    margin: "24px auto 0",
+    marginTop: "40px",
     display: "flex",
-    gap: "12px",
-    justifyContent: "center"
+    gap: "16px"
   },
   printButton: {
-    padding: "14px 32px",
-    background: "#3b82f6",
+    padding: "16px 32px",
+    background: "#2563eb",
+    color: "white",
     border: "none",
     borderRadius: "12px",
-    color: "white",
-    fontSize: "16px",
+    fontSize: "15px",
     fontWeight: "600",
     cursor: "pointer",
     display: "flex",
     alignItems: "center",
-    gap: "8px",
-    transition: "all 0.2s ease",
-    boxShadow: "0 4px 6px -1px rgba(59,130,246,0.3)"
+    gap: "10px",
+    boxShadow: "0 4px 12px rgba(37, 99, 235, 0.2)"
   },
   closeButton: {
-    padding: "14px 32px",
-    background: "var(--bg-card)",
-    border: "1px solid var(--bg-sidebar)",
+    padding: "16px 32px",
+    background: "white",
+    color: "#64748b",
+    border: "1px solid #e2e8f0",
     borderRadius: "12px",
-    fontSize: "16px",
+    fontSize: "15px",
     fontWeight: "500",
-    color: "var(--text-muted)",
     cursor: "pointer",
-    transition: "all 0.2s ease"
+    boxShadow: "0 2px 4px rgba(0,0,0,0.05)"
   },
   printIcon: {
-    fontSize: "20px"
+    fontSize: "18px"
   },
   errorContainer: {
     textAlign: "center",
-    padding: "60px 20px",
+    padding: "60px",
     background: "white",
-    borderRadius: "20px",
-    maxWidth: "400px",
-    margin: "40px auto",
-    boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)"
+    borderRadius: "16px",
+    boxShadow: "0 4px 6px rgba(0,0,0,0.05)"
   }
 };
 
