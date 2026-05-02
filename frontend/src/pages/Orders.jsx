@@ -170,10 +170,28 @@ function Orders() {
         </div>
       </div>
 
+      {/* Responsive styles */}
+      <style>{`
+        .ord-table-wrap { overflow-x: auto; }
+        .ord-table { width: 100%; border-collapse: collapse; min-width: 800px; }
+        .ord-card-list { display: none; }
+        @media (max-width: 768px) {
+          .ord-table-wrap { display: none; }
+          .ord-card-list { display: flex; flex-direction: column; gap: 10px; padding: 12px; }
+          .ord-card {
+            background: #fff; border: 1px solid #e2e8f0; border-radius: 14px;
+            padding: 16px; cursor: pointer;
+          }
+          .ord-card-top { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+          .ord-card-row { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+          .ord-card-label { font-size: 11px; color: #94a3b8; font-weight: 500; }
+        }
+      `}</style>
+
       {/* Table */}
       <div style={styles.tableContainer}>
-        <div style={styles.tableWrap}>
-          <table style={styles.table}>
+        <div className="ord-table-wrap">
+          <table className="ord-table">
             <thead style={styles.thead}>
               <tr>
                 <th style={styles.th}>Order</th>
@@ -187,16 +205,8 @@ function Orders() {
               {filteredOrders.map((o, i) => {
                 const remaining = Number(o.remaining_amount || 0);
                 const isPaid = remaining === 0;
-
                 return (
-                  <motion.tr 
-                    key={o.id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: i * 0.02 }}
-                    style={styles.tr}
-                    onClick={() => navigate(`/orders/${o.order_id}`)}
-                  >
+                  <motion.tr key={o.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }} style={styles.tr} onClick={() => navigate(`/orders/${o.order_id}`)}>
                     <td style={styles.td}>
                       <div style={styles.orderCell}>
                         <div style={styles.idBadge}>#{o.order_id.toString().padStart(5, '0')}</div>
@@ -216,19 +226,12 @@ function Orders() {
                       </div>
                     </td>
                     <td style={styles.td}>
-                      <span style={{ 
-                        ...styles.statusBadge, 
-                        background: isPaid ? "rgba(22, 163, 74, 0.08)" : "rgba(245, 158, 11, 0.08)",
-                        color: isPaid ? "#16a34a" : "#f59e0b"
-                      }}>
+                      <span style={{ ...styles.statusBadge, background: isPaid ? "rgba(22,163,74,0.08)" : "rgba(245,158,11,0.08)", color: isPaid ? "#16a34a" : "#f59e0b" }}>
                         {isPaid ? "Paid" : "Due"}
                       </span>
                     </td>
                     <td style={{ ...styles.td, textAlign: "right" }}>
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); navigate(`/orders/${o.order_id}`); }} 
-                        style={styles.viewBtn}
-                      >
+                      <button onClick={(e) => { e.stopPropagation(); navigate(`/orders/${o.order_id}`); }} style={styles.viewBtn}>
                         View <ChevronRight size={12} />
                       </button>
                     </td>
@@ -244,6 +247,42 @@ function Orders() {
               <p style={{ margin: 0, color: "#94a3b8", fontSize: "14px" }}>Adjust filters or create a new order.</p>
             </div>
           )}
+        </div>
+
+        {/* Mobile Cards */}
+        <div className="ord-card-list">
+          {filteredOrders.length === 0 && (
+            <div style={{ textAlign: "center", padding: "40px", color: "#94a3b8", fontSize: "14px" }}>No orders found</div>
+          )}
+          {filteredOrders.map((o, i) => {
+            const remaining = Number(o.remaining_amount || 0);
+            const isPaid = remaining === 0;
+            return (
+              <motion.div key={o.id} className="ord-card" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }} onClick={() => navigate(`/orders/${o.order_id}`)}>
+                <div className="ord-card-top">
+                  <div style={styles.avatar}>{o.customer_name?.charAt(0)}</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={styles.custName}>{o.customer_name}</div>
+                    <div style={styles.dateText}>{new Date(o.created_at).toLocaleDateString(undefined, { dateStyle: 'medium' })}</div>
+                  </div>
+                  <span style={{ ...styles.statusBadge, background: isPaid ? "rgba(22,163,74,0.08)" : "rgba(245,158,11,0.08)", color: isPaid ? "#16a34a" : "#f59e0b" }}>
+                    {isPaid ? "Paid" : "Due"}
+                  </span>
+                </div>
+                <div className="ord-card-row">
+                  <div>
+                    <div className="ord-card-label">Order ID</div>
+                    <div style={styles.idBadge}>#{o.order_id.toString().padStart(5, '0')}</div>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div className="ord-card-label">Total</div>
+                    <div style={styles.mainAmount}>{formatCurrency(o.total_amount)}</div>
+                    {!isPaid && <div style={styles.dueSubtext}>Due: {formatCurrency(remaining)}</div>}
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })}
         </div>
       </div>
     </motion.div>

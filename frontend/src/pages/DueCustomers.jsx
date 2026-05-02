@@ -170,10 +170,35 @@ function DueCustomers() {
         </div>
       </div>
 
+      {/* Responsive styles */}
+      <style>{`
+        .due-table-wrap { overflow-x: auto; }
+        .due-table { width: 100%; border-collapse: collapse; min-width: 700px; }
+        .due-card-list { display: none; }
+        @media (max-width: 768px) {
+          .due-table-wrap { display: none; }
+          .due-card-list { display: flex; flex-direction: column; gap: 12px; padding: 12px; }
+          .due-card {
+            background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px;
+          }
+          .due-card-top { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+          .due-card-amounts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+          .due-card-amount-box { background: #F8FAFC; border-radius: 10px; padding: 10px 12px; }
+          .due-card-amount-label { font-size: 10px; color: #94a3b8; font-weight: 600; text-transform: uppercase; margin-bottom: 2px; }
+          .due-card-amount-val { font-weight: 700; font-size: 14px; color: #0F172A; }
+          .due-card-btns { display: flex; gap: 8px; }
+          .due-card-btns button { flex: 1; justify-content: center; }
+        }
+        @media print {
+          aside, nav, header > button, .filter-row, .actions { display: none !important; }
+          body { background: white !important; }
+        }
+      `}</style>
+
       {/* Table */}
       <div style={styles.tableContainer}>
-        <div style={styles.tableWrap}>
-          <table style={styles.table}>
+        <div className="due-table-wrap">
+          <table className="due-table">
             <thead style={styles.thead}>
               <tr>
                 <th style={styles.th}>Customer</th>
@@ -188,15 +213,8 @@ function DueCustomers() {
               {filteredAndSorted.map((c, i) => {
                 const age = getDueAge(c.oldest_due_date);
                 const severity = age > 30 ? 'critical' : age > 14 ? 'urgent' : 'stable';
-                
                 return (
-                  <motion.tr 
-                    key={c.id} 
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.04 }}
-                    style={styles.tr}
-                  >
+                  <motion.tr key={c.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }} style={styles.tr}>
                     <td style={styles.td}>
                       <div style={styles.custCell}>
                         <div style={styles.avatar}>{c.name.charAt(0)}</div>
@@ -206,33 +224,18 @@ function DueCustomers() {
                         </div>
                       </div>
                     </td>
+                    <td style={styles.td}><span style={{ fontWeight: 600, color: "#475569" }}>{formatCurrency(c.total_purchase)}</span></td>
+                    <td style={styles.td}><span style={{ fontWeight: 600, color: "#16a34a" }}>{formatCurrency(c.total_deposited)}</span></td>
+                    <td style={{ ...styles.td, fontWeight: 700, fontSize: "15px", color: "#ef4444" }}>{formatCurrency(c.total_due)}</td>
                     <td style={styles.td}>
-                      <span style={{ fontWeight: 600, color: "#475569" }}>{formatCurrency(c.total_purchase)}</span>
-                    </td>
-                    <td style={styles.td}>
-                      <span style={{ fontWeight: 600, color: "#16a34a" }}>{formatCurrency(c.total_deposited)}</span>
-                    </td>
-                    <td style={{ ...styles.td, fontWeight: 700, fontSize: "15px", color: "#ef4444" }}>
-                      {formatCurrency(c.total_due)}
-                    </td>
-                    <td style={styles.td}>
-                      <span style={{ 
-                        ...styles.ageBadge, 
-                        background: severity === 'critical' ? 'rgba(239, 68, 68, 0.08)' : severity === 'urgent' ? 'rgba(245, 158, 11, 0.08)' : '#F8FAFC',
-                        color: severity === 'critical' ? '#ef4444' : severity === 'urgent' ? '#f59e0b' : '#94a3b8',
-                        border: severity === 'stable' ? '1px solid #e2e8f0' : 'none'
-                      }}>
+                      <span style={{ ...styles.ageBadge, background: severity === 'critical' ? 'rgba(239,68,68,0.08)' : severity === 'urgent' ? 'rgba(245,158,11,0.08)' : '#F8FAFC', color: severity === 'critical' ? '#ef4444' : severity === 'urgent' ? '#f59e0b' : '#94a3b8', border: severity === 'stable' ? '1px solid #e2e8f0' : 'none' }}>
                         {age} Days
                       </span>
                     </td>
                     <td style={{ ...styles.td, textAlign: "right" }}>
                       <div style={styles.actions}>
-                        <button onClick={() => sendWhatsAppReminder(c)} style={styles.waBtn}>
-                          <MessageCircle size={14} /> Remind
-                        </button>
-                        <button onClick={() => navigate(`/customer-due/${c.id}`)} style={styles.settleBtn}>
-                          Settle <ChevronRight size={12} />
-                        </button>
+                        <button onClick={() => sendWhatsAppReminder(c)} style={styles.waBtn}><MessageCircle size={14} /> Remind</button>
+                        <button onClick={() => navigate(`/customer-due/${c.id}`)} style={styles.settleBtn}>Settle <ChevronRight size={12} /></button>
                       </div>
                     </td>
                   </motion.tr>
@@ -241,22 +244,52 @@ function DueCustomers() {
             </tbody>
           </table>
           {filteredAndSorted.length === 0 && (
-             <div style={styles.emptyState}>
-               <AlertTriangle size={40} style={{ opacity: 0.12, marginBottom: "12px" }} />
-               <p style={{ fontWeight: "500", color: "#94a3b8", fontSize: "14px" }}>All accounts are in good standing</p>
-             </div>
+            <div style={styles.emptyState}>
+              <AlertTriangle size={40} style={{ opacity: 0.12, marginBottom: "12px" }} />
+              <p style={{ fontWeight: "500", color: "#94a3b8", fontSize: "14px" }}>All accounts are in good standing</p>
+            </div>
           )}
         </div>
+
+        {/* Mobile Card List */}
+        <div className="due-card-list">
+          {filteredAndSorted.length === 0 && (
+            <div style={{ textAlign: "center", padding: "40px", color: "#94a3b8", fontSize: "14px" }}>All accounts are in good standing</div>
+          )}
+          {filteredAndSorted.map((c, i) => {
+            const age = getDueAge(c.oldest_due_date);
+            const severity = age > 30 ? 'critical' : age > 14 ? 'urgent' : 'stable';
+            return (
+              <motion.div key={c.id} className="due-card" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
+                <div className="due-card-top">
+                  <div style={styles.avatar}>{c.name.charAt(0)}</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={styles.custName}>{c.name}</div>
+                    <div style={styles.custPhone}><Phone size={11} /> {c.phone}</div>
+                  </div>
+                  <span style={{ ...styles.ageBadge, background: severity === 'critical' ? 'rgba(239,68,68,0.08)' : severity === 'urgent' ? 'rgba(245,158,11,0.08)' : '#F8FAFC', color: severity === 'critical' ? '#ef4444' : severity === 'urgent' ? '#f59e0b' : '#94a3b8', border: severity === 'stable' ? '1px solid #e2e8f0' : 'none' }}>
+                    {age}d
+                  </span>
+                </div>
+                <div className="due-card-amounts">
+                  <div className="due-card-amount-box">
+                    <div className="due-card-amount-label">Deposited</div>
+                    <div className="due-card-amount-val" style={{ color: "#16a34a" }}>{formatCurrency(c.total_deposited)}</div>
+                  </div>
+                  <div className="due-card-amount-box" style={{ background: "rgba(239,68,68,0.04)", border: "1px solid rgba(239,68,68,0.1)" }}>
+                    <div className="due-card-amount-label">Outstanding</div>
+                    <div className="due-card-amount-val" style={{ color: "#ef4444" }}>{formatCurrency(c.total_due)}</div>
+                  </div>
+                </div>
+                <div className="due-card-btns">
+                  <button onClick={() => sendWhatsAppReminder(c)} style={styles.waBtn}><MessageCircle size={14} /> Remind</button>
+                  <button onClick={() => navigate(`/customer-due/${c.id}`)} style={styles.settleBtn}>Settle <ChevronRight size={12} /></button>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
       </div>
-      
-      <style>{`
-        @media print {
-          aside, nav, header > button, .filter-row, .actions, .action-terminal { display: none !important; }
-          body { background: white !important; }
-          .container { padding: 0 !important; }
-          .card { border: 1px solid #eee !important; box-shadow: none !important; }
-        }
-      `}</style>
     </motion.div>
   );
 }

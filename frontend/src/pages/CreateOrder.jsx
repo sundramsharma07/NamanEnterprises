@@ -105,7 +105,8 @@ function CreateOrder() {
   if (dataLoading) {
     return (
       <div style={styles.container}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 350px", gap: "24px" }}>
+        <style>{`@media (max-width: 768px) { .co-skeleton-grid { grid-template-columns: 1fr !important; } }`}</style>
+        <div className="co-skeleton-grid" style={{ display: "grid", gridTemplateColumns: "1fr 350px", gap: "24px" }}>
           <Skeleton height="500px" />
           <Skeleton height="400px" />
         </div>
@@ -120,6 +121,17 @@ function CreateOrder() {
       transition={{ duration: 0.5 }}
       style={styles.container}
     >
+      <style>{`
+        .co-grid { display: grid; grid-template-columns: 1fr 380px; gap: 24px; align-items: start; }
+        .co-item-row { display: flex; align-items: center; gap: 16px; padding: 16px; background: #F8FAFC; border: 1px solid #f1f5f9; border-radius: 12px; }
+        @media (max-width: 768px) {
+          .co-grid { grid-template-columns: 1fr !important; }
+          .co-item-row { flex-wrap: wrap; gap: 10px; }
+          .co-item-select { width: 100% !important; }
+          .co-summary-card { position: static !important; }
+        }
+      `}</style>
+
       <header style={styles.header}>
         <div style={styles.titleArea}>
           <h1 style={styles.title}>Create Order</h1>
@@ -127,7 +139,7 @@ function CreateOrder() {
         </div>
       </header>
 
-      <div style={styles.grid}>
+      <div className="co-grid" style={styles.grid}>
         {/* Left: Product Selection */}
         <div style={styles.leftCol}>
           <div style={styles.mainCard}>
@@ -150,9 +162,10 @@ function CreateOrder() {
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: 20 }}
+                      className="co-item-row"
                       style={styles.itemRow}
                     >
-                      <div style={styles.itemSelect}>
+                      <div className="co-item-select" style={styles.itemSelect}>
                         <div style={styles.selectWrapper}>
                           <Package size={14} style={styles.selectIcon} />
                           <select 
@@ -343,7 +356,7 @@ const styles = {
   inputIcon: { position: "absolute", left: "14px", color: "#94a3b8" },
   mainInput: { width: "100%", padding: "14px 14px 14px 44px", borderRadius: "12px", border: "1px solid #e2e8f0", fontSize: "18px", fontWeight: "700", outline: "none", color: "#0F172A", background: "#F8FAFC", fontFamily: "inherit" },
 
-  summaryCard: { padding: "28px", background: "#fff", borderRadius: "16px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)", position: "sticky", top: "24px" },
+  summaryCard: { padding: "28px", background: "#fff", borderRadius: "16px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)", position: "sticky", top: "24px", className: "co-summary-card" },
   customerSec: { paddingBottom: "24px", borderBottom: "1px solid #f1f5f9", marginBottom: "24px" },
   secLabel: { fontSize: "11px", fontWeight: "600", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "16px" },
   custPreview: { marginTop: "16px", display: "flex", alignItems: "center", gap: "12px", padding: "12px", background: "#F8FAFC", borderRadius: "10px", overflow: "hidden" },

@@ -233,10 +233,32 @@ function Products() {
         </div>
       </div>
 
+      {/* Mobile + Desktop responsive styles */}
+      <style>{`
+        .prod-table-wrap { overflow-x: auto; }
+        .prod-table { width: 100%; border-collapse: collapse; min-width: 900px; }
+        .prod-card-list { display: none; }
+        @media (max-width: 768px) {
+          .prod-table-wrap { display: none; }
+          .prod-card-list { display: flex; flex-direction: column; gap: 12px; padding: 12px; }
+          .prod-card {
+            background: #fff; border: 1px solid #e2e8f0; border-radius: 14px;
+            padding: 16px; display: flex; flex-direction: column; gap: 12px;
+          }
+          .prod-card-top { display: flex; align-items: center; gap: 12px; }
+          .prod-card-name { font-weight: 700; color: #0F172A; font-size: 15px; }
+          .prod-card-meta { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+          .prod-card-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+          .prod-card-label { font-size: 11px; color: #94a3b8; font-weight: 600; text-transform: uppercase; }
+          .prod-card-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+          .prod-card-actions { display: flex; gap: 8px; }
+        }
+      `}</style>
+
       {/* Table */}
       <div style={styles.tableContainer}>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={styles.table}>
+        <div className="prod-table-wrap">
+          <table className="prod-table" style={styles.thead ? {} : {}}>
             <thead style={styles.thead}>
               <tr>
                 <th style={styles.th}>Product</th>
@@ -251,42 +273,23 @@ function Products() {
                 const stock = Number(p.stock);
                 const isLow = stock <= Number(p.min_stock);
                 const form = stockForm[p.id] || { type: 'IN', quantity: '', note: '' };
-
                 return (
-                  <motion.tr 
-                    key={p.id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: i * 0.02 }}
-                    style={styles.tr}
-                  >
+                  <motion.tr key={p.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }} style={styles.tr}>
                     <td style={styles.td}>
                       <div style={styles.prodCell}>
-                        <div style={{ ...styles.prodIcon, background: isLow ? "rgba(239, 68, 68, 0.08)" : "rgba(22, 163, 74, 0.08)", color: isLow ? "#ef4444" : "#16a34a" }}>
-                          <Package size={18} />
-                        </div>
-                        <div>
-                          <div style={styles.prodName}>{p.name}</div>
-                          <div style={styles.prodMeta}>{p.category} • {p.variant || 'Standard'}</div>
-                        </div>
+                        <div style={{ ...styles.prodIcon, background: isLow ? "rgba(239,68,68,0.08)" : "rgba(22,163,74,0.08)", color: isLow ? "#ef4444" : "#16a34a" }}><Package size={18} /></div>
+                        <div><div style={styles.prodName}>{p.name}</div><div style={styles.prodMeta}>{p.category} • {p.variant || 'Standard'}</div></div>
                       </div>
                     </td>
                     <td style={styles.td}>
                       <div style={styles.priceRow}>
                         <span style={{ color: "#2563EB", fontSize: "14px", fontWeight: "700" }}>₹</span>
-                        <input 
-                          type="number"
-                          value={p.price}
-                          onChange={e => handlePriceChange(p.id, e.target.value)}
-                          style={styles.priceInput}
-                        />
-                        <button onClick={() => updatePrice(p)} style={styles.iconBtn} disabled={updatingId === p.id}>
-                          {updatingId === p.id ? "..." : <CheckCircle2 size={14} />}
-                        </button>
+                        <input type="number" value={p.price} onChange={e => handlePriceChange(p.id, e.target.value)} style={styles.priceInput} />
+                        <button onClick={() => updatePrice(p)} style={styles.iconBtn} disabled={updatingId === p.id}>{updatingId === p.id ? "..." : <CheckCircle2 size={14} />}</button>
                       </div>
                     </td>
                     <td style={styles.td}>
-                      <div style={{ ...styles.stockBadge, background: isLow ? "rgba(239, 68, 68, 0.08)" : "rgba(22, 163, 74, 0.06)", color: isLow ? "#ef4444" : "#16a34a" }}>
+                      <div style={{ ...styles.stockBadge, background: isLow ? "rgba(239,68,68,0.08)" : "rgba(22,163,74,0.06)", color: isLow ? "#ef4444" : "#16a34a" }}>
                         <span style={{ fontWeight: "700" }}>{stock}</span>
                         <span style={{ fontSize: "10px", marginLeft: "3px", opacity: 0.7 }}>{p.unit}</span>
                         {isLow && <AlertCircle size={12} style={{ marginLeft: 6 }} />}
@@ -294,30 +297,15 @@ function Products() {
                     </td>
                     <td style={styles.td}>
                       <div style={styles.stockControl}>
-                        <select 
-                          value={form.type} 
-                          onChange={e => handleStockFormChange(p.id, 'type', e.target.value)}
-                          style={styles.stockType}
-                        >
-                          <option value="IN">ADD</option>
-                          <option value="OUT">REDUCE</option>
+                        <select value={form.type} onChange={e => handleStockFormChange(p.id, 'type', e.target.value)} style={styles.stockType}>
+                          <option value="IN">ADD</option><option value="OUT">REDUCE</option>
                         </select>
-                        <input 
-                          type="number" 
-                          placeholder="0" 
-                          value={form.quantity}
-                          onChange={e => handleStockFormChange(p.id, 'quantity', e.target.value)}
-                          style={styles.stockInput}
-                        />
-                        <button onClick={() => updateStock(p.id)} style={styles.adjustBtn} disabled={stockUpdatingId === p.id}>
-                          {stockUpdatingId === p.id ? "..." : <ArrowRight size={14} />}
-                        </button>
+                        <input type="number" placeholder="0" value={form.quantity} onChange={e => handleStockFormChange(p.id, 'quantity', e.target.value)} style={styles.stockInput} />
+                        <button onClick={() => updateStock(p.id)} style={styles.adjustBtn} disabled={stockUpdatingId === p.id}>{stockUpdatingId === p.id ? "..." : <ArrowRight size={14} />}</button>
                       </div>
                     </td>
                     <td style={{ ...styles.td, textAlign: "right" }}>
-                      <button onClick={() => viewStockHistory(p.id)} style={styles.auditBtn}>
-                        <History size={14} /> History
-                      </button>
+                      <button onClick={() => viewStockHistory(p.id)} style={styles.auditBtn}><History size={14} /> History</button>
                     </td>
                   </motion.tr>
                 );
@@ -325,11 +313,58 @@ function Products() {
             </tbody>
           </table>
           {filteredProducts.length === 0 && (
-            <div style={styles.emptyState}>
-               <Search size={40} style={{ opacity: 0.15, marginBottom: "12px" }} />
-               <p style={{ fontWeight: "500", color: "#94a3b8", fontSize: "14px" }}>No products found</p>
-            </div>
+            <div style={styles.emptyState}><Search size={40} style={{ opacity: 0.15, marginBottom: "12px" }} /><p style={{ fontWeight: "500", color: "#94a3b8", fontSize: "14px" }}>No products found</p></div>
           )}
+        </div>
+
+        {/* Mobile Card List */}
+        <div className="prod-card-list">
+          {filteredProducts.length === 0 && (
+            <div style={{ textAlign: "center", padding: "40px", color: "#94a3b8" }}>No products found</div>
+          )}
+          {filteredProducts.map((p, i) => {
+            const stock = Number(p.stock);
+            const isLow = stock <= Number(p.min_stock);
+            const form = stockForm[p.id] || { type: 'IN', quantity: '', note: '' };
+            return (
+              <motion.div key={p.id} className="prod-card" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
+                <div className="prod-card-top">
+                  <div style={{ ...styles.prodIcon, background: isLow ? "rgba(239,68,68,0.08)" : "rgba(22,163,74,0.08)", color: isLow ? "#ef4444" : "#16a34a", flexShrink: 0 }}><Package size={18} /></div>
+                  <div style={{ flex: 1 }}>
+                    <div className="prod-card-name">{p.name}</div>
+                    <div className="prod-card-meta">{p.category} • {p.variant || 'Standard'}</div>
+                  </div>
+                  <div style={{ ...styles.stockBadge, background: isLow ? "rgba(239,68,68,0.08)" : "rgba(22,163,74,0.06)", color: isLow ? "#ef4444" : "#16a34a" }}>
+                    <span style={{ fontWeight: "700" }}>{stock}</span>
+                    <span style={{ fontSize: "10px", marginLeft: "3px" }}>{p.unit}</span>
+                    {isLow && <AlertCircle size={11} style={{ marginLeft: 4 }} />}
+                  </div>
+                </div>
+
+                <div className="prod-card-row">
+                  <span className="prod-card-label">Price</span>
+                  <div style={styles.priceRow}>
+                    <span style={{ color: "#2563EB", fontWeight: "700" }}>₹</span>
+                    <input type="number" value={p.price} onChange={e => handlePriceChange(p.id, e.target.value)} style={{ ...styles.priceInput, width: "70px" }} />
+                    <button onClick={() => updatePrice(p)} style={styles.iconBtn} disabled={updatingId === p.id}>{updatingId === p.id ? "..." : <CheckCircle2 size={14} />}</button>
+                  </div>
+                </div>
+
+                <div className="prod-card-row">
+                  <span className="prod-card-label">Adjust Stock</span>
+                  <div style={styles.stockControl}>
+                    <select value={form.type} onChange={e => handleStockFormChange(p.id, 'type', e.target.value)} style={styles.stockType}>
+                      <option value="IN">ADD</option><option value="OUT">REDUCE</option>
+                    </select>
+                    <input type="number" placeholder="0" value={form.quantity} onChange={e => handleStockFormChange(p.id, 'quantity', e.target.value)} style={styles.stockInput} />
+                    <button onClick={() => updateStock(p.id)} style={styles.adjustBtn} disabled={stockUpdatingId === p.id}>{stockUpdatingId === p.id ? "..." : <ArrowRight size={14} />}</button>
+                  </div>
+                </div>
+
+                <button onClick={() => viewStockHistory(p.id)} style={{ ...styles.auditBtn, width: "100%", justifyContent: "center" }}><History size={14} /> View History</button>
+              </motion.div>
+            );
+          })}
         </div>
       </div>
 
