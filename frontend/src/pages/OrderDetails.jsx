@@ -88,7 +88,7 @@ export default function OrderDetails() {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={styles.container}>
-      <header style={styles.header}>
+      <header className="od-header" style={styles.header}>
         <button onClick={() => navigate('/orders')} style={styles.backBtn}>
           <ArrowLeft size={18} /> Orders History
         </button>
@@ -102,7 +102,7 @@ export default function OrderDetails() {
       <div style={styles.content}>
         {/* Invoice Header */}
         <Card style={styles.invoiceHead}>
-          <div style={styles.invoiceMain}>
+          <div className="od-invoice-main" style={styles.invoiceMain}>
             <div style={styles.brandInfo}>
               <div style={styles.invoiceLogo}>NE</div>
               <div>
@@ -115,7 +115,7 @@ export default function OrderDetails() {
             </div>
           </div>
 
-          <div style={styles.billingGrid}>
+          <div className="od-billing-grid" style={styles.billingGrid}>
             <div style={styles.billBox}>
               <h4 style={styles.billLabel}>Billed To</h4>
               <div style={styles.custBox}>
@@ -143,11 +143,12 @@ export default function OrderDetails() {
         </Card>
 
         {/* Details Grid */}
-        <div style={styles.detailsGrid}>
+        <div className="od-details-grid" style={styles.detailsGrid}>
           <div style={styles.itemsSection}>
             <h3 style={styles.sectionTitle}><Package size={20} /> Itemized Breakdown</h3>
             <Card style={{ padding: 0, overflow: 'hidden' }}>
-              <table style={styles.table}>
+              <div className="od-table-wrap">
+              <table className="od-table" style={styles.table}>
                 <thead style={styles.thead}>
                   <tr>
                     <th style={styles.th}>Product / Variant</th>
@@ -170,6 +171,7 @@ export default function OrderDetails() {
                   ))}
                 </tbody>
               </table>
+              </div>
               <div style={styles.footerSummary}>
                 <div style={styles.footRow}>
                   <span>Subtotal</span>
@@ -225,12 +227,23 @@ export default function OrderDetails() {
       </div>
 
       <style>{`
+        .od-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
+        .od-details-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
+        .od-billing-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; padding: 24px; background: #F8FAFC; border-radius: 14px; border: 1px solid #f1f5f9; }
+        .od-invoice-main { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; }
+        @media (max-width: 768px) {
+          .od-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+          .od-header > div { width: 100%; display: flex; gap: 8px; }
+          .od-header > div button { flex: 1; justify-content: center; }
+          .od-details-grid { grid-template-columns: 1fr !important; }
+          .od-billing-grid { grid-template-columns: 1fr !important; gap: 16px; padding: 16px; }
+          .od-invoice-main { flex-direction: column; gap: 12px; align-items: flex-start; }
+          .od-table-wrap { overflow-x: auto; }
+          .od-table { min-width: 500px; }
+        }
         @media print {
-          nav, header, .payNowBtn, .footerSummary > div:not(:last-child) { display: none !important; }
+          nav, header, .payNowBtn { display: none !important; }
           .container { padding: 0 !important; background: white !important; }
-          .detailsGrid { display: block !important; }
-          .paymentSection { margin-top: 40px; }
-          .invoiceHead { box-shadow: none !important; border: 1px solid #eee !important; }
         }
       `}</style>
     </motion.div>

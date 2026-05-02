@@ -113,7 +113,7 @@ export default function CustomerProfile() {
         </div>
       </header>
 
-      <div style={styles.grid}>
+      <div className="cp-grid" style={styles.grid}>
         {/* Profile Sidebar */}
         <div style={styles.sidebar}>
           <div className="card" style={styles.profileCard}>
@@ -224,7 +224,7 @@ export default function CustomerProfile() {
                           </span>
                         </div>
                         
-                        <div style={styles.orderStats}>
+                        <div className="cp-order-stats" style={styles.orderStats}>
                           <div style={styles.orderStat}>
                             <span style={styles.orderStatLabel}>Grand Total</span>
                             <span style={styles.orderStatVal}>{formatCurrency(o.total_amount)}</span>
@@ -251,7 +251,8 @@ export default function CustomerProfile() {
 
             {activeTab === "ledger" && (
               <div style={{ padding: 0, overflow: 'hidden', borderRadius: '16px', border: '1px solid #e2e8f0', background: '#fff' }}>
-                <table style={styles.table}>
+                <div className="cp-ledger-wrap">
+                <table className="cp-ledger-table" style={styles.table}>
                   <thead style={styles.thead}>
                     <tr>
                       <th style={styles.th}>Date</th>
@@ -278,11 +279,23 @@ export default function CustomerProfile() {
                     ))}
                   </tbody>
                 </table>
+                </div>
               </div>
             )}
           </div>
         </div>
       </div>
+      <style>{`
+        .cp-grid { display: grid; grid-template-columns: 360px 1fr; gap: 24px; align-items: start; }
+        .cp-order-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; padding: 20px; background: #F8FAFC; border-radius: 12px; margin-bottom: 20px; border: 1px solid #f1f5f9; }
+        .cp-ledger-wrap { overflow-x: auto; }
+        .cp-ledger-table { width: 100%; border-collapse: collapse; min-width: 500px; }
+        @media (max-width: 768px) {
+          .cp-grid { grid-template-columns: 1fr !important; }
+          .cp-order-stats { grid-template-columns: 1fr 1fr !important; gap: 10px; padding: 14px; }
+          .cp-ledger-wrap { overflow-x: auto; }
+        }
+      `}</style>
     </motion.div>
   );
 }

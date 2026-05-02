@@ -259,7 +259,6 @@ const styles = {
   }
 };
 
-// Add CSS for Media Query visibility
 const css = `
 @media (min-width: 1024px) {
   .menu-btn { display: none !important; }
@@ -268,6 +267,8 @@ const css = `
 @media (max-width: 1023px) {
   .menu-btn { display: flex !important; }
   .desktop-nav { display: none !important; }
+  nav { padding: 0 16px !important; }
+  .nav-brand-text span:last-child { display: none; }
 }
 `;
 

@@ -146,7 +146,7 @@ export default function CustomerDueDetails() {
       </header>
 
       {/* Customer Profile Banner */}
-      <Card style={styles.profileBanner}>
+      <Card className="cdd-profile-banner" style={styles.profileBanner}>
         <div style={styles.avatar}>
           {customerInfo.name?.charAt(0).toUpperCase()}
         </div>
@@ -180,7 +180,7 @@ export default function CustomerDueDetails() {
       </Card>
 
       {/* Stats Row */}
-      <div style={styles.statsRow}>
+      <div className="cdd-stats-row" style={styles.statsRow}>
         <div style={styles.miniStatsCard}>
           <div style={styles.miniIcon}><Zap size={16} color="#F59E0B" /></div>
           <div>
@@ -204,7 +204,7 @@ export default function CustomerDueDetails() {
         </div>
       </div>
 
-      <div style={styles.mainGrid}>
+      <div className="cdd-main-grid" style={styles.mainGrid}>
         {/* Pending Orders Column */}
         <div style={styles.col}>
           <div style={styles.secHeader}>
@@ -245,7 +245,7 @@ export default function CustomerDueDetails() {
                     </div>
                   </div>
 
-                  <div style={styles.orderActions}>
+                  <div className="cdd-order-actions" style={styles.orderActions}>
                     <button 
                       style={styles.expandBtn}
                       onClick={() => setExpandedOrderId(expandedOrderId === order.order_id ? null : order.order_id)}
@@ -340,6 +340,7 @@ export default function CustomerDueDetails() {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
+              className="cdd-modal"
               style={styles.modal} 
               onClick={e => e.stopPropagation()}
             >
@@ -378,6 +379,19 @@ export default function CustomerDueDetails() {
 
       <style>{`
         .mb-8 { margin-bottom: 32px; }
+        .cdd-main-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 24px; }
+        .cdd-profile-banner { display: flex; align-items: center; gap: 20px; padding: 24px; margin-bottom: 32px; border: 1px solid #e2e8f0; border-radius: 16px; background: #fff; }
+        .cdd-stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 32px; }
+        .cdd-modal { background: #fff; width: 420px; padding: 32px; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.2); }
+        @media (max-width: 768px) {
+          .cdd-profile-banner { flex-direction: column; text-align: center; align-items: center; }
+          .cdd-profile-banner .reliability-panel { padding-left: 0 !important; border-left: none !important; border-top: 1px solid #f1f5f9 !important; padding-top: 16px !important; width: 100% !important; min-width: unset !important; }
+          .cdd-stats-row { grid-template-columns: 1fr !important; gap: 10px; }
+          .cdd-main-grid { grid-template-columns: 1fr !important; }
+          .cdd-modal { width: 92vw !important; padding: 24px !important; border-radius: 16px !important; }
+          .cdd-order-actions { flex-wrap: wrap; }
+          .cdd-order-actions button { flex: 1; min-width: 100px; }
+        }
       `}</style>
     </motion.div>
   );

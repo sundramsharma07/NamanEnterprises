@@ -202,7 +202,7 @@ function Dashboard() {
       style={styles.container}
     >
       {/* Store Banner */}
-      <div style={{ position: "relative", width: "100%", height: "240px", marginBottom: "32px", borderRadius: "24px", overflow: "hidden", border: "1px solid rgba(255, 255, 255, 0.1)", boxShadow: "0 10px 30px rgba(0,0,0,0.1)", background: "#0F172A" }}>
+      <div className="dash-banner" style={{ position: "relative", width: "100%", height: "240px", marginBottom: "32px", borderRadius: "24px", overflow: "hidden", border: "1px solid rgba(255, 255, 255, 0.1)", boxShadow: "0 10px 30px rgba(0,0,0,0.1)", background: "#0F172A" }}>
         <AnimatePresence initial={false}>
           <motion.div 
             key={bgIndex}
@@ -219,6 +219,7 @@ function Dashboard() {
               justifyContent: "center",
               padding: "0 40px",
             }}
+            className="dash-banner-pad"
           >
             <div style={{ position: "relative", zIndex: 2 }}>
               <h2 style={{ color: "#F59E0B", fontSize: "36px", fontWeight: "900", margin: 0, letterSpacing: "-1.5px", fontFamily: "'Outfit', sans-serif" }}>NAMAN ENTERPRISES</h2>
@@ -250,12 +251,12 @@ function Dashboard() {
         </div>
       </div>
 
-      <header className="stack-mobile" style={styles.header}>
+      <header className="dash-stack-hdr" style={styles.header}>
         <div style={styles.titleArea}>
           <h1 style={styles.title}>Dashboard</h1>
           <p style={styles.subtitle}>Welcome to Naman Enterprises management portal</p>
         </div>
-        <div style={styles.actions}>
+        <div className="dash-hdr-btns" style={styles.actions}>
           <motion.button 
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -278,7 +279,7 @@ function Dashboard() {
       </header>
 
       {/* Stats Grid */}
-      <div className="grid-mobile-1" style={styles.statsGrid}>
+      <div className="dash-stats-grid" style={styles.statsGrid}>
         {dashCards.map((card, i) => (
           <motion.div
             key={i}
@@ -308,7 +309,7 @@ function Dashboard() {
         ))}
       </div>
 
-      <div style={styles.mainGrid}>
+      <div className="dash-main-grid" style={styles.mainGrid}>
         {/* Business Analytics & Growth */}
         <div style={styles.pulseCard}>
           <div style={styles.secHeader}>
@@ -361,7 +362,7 @@ function Dashboard() {
             <TrendingUp size={18} color="#2563EB" />
             <h3 style={styles.secTitle}>Recent Orders</h3>
           </div>
-          <div style={styles.tableWrap}>
+          <div style={{ overflowX: "auto" }}>
             <table style={styles.table}>
               <thead>
                 <tr>
@@ -404,6 +405,20 @@ function Dashboard() {
         .spin { animation: spin 2s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .mb-8 { margin-bottom: 32px; }
+        .dash-main-grid { display: grid; grid-template-columns: 1fr 1.6fr; gap: 20px; align-items: start; }
+        .dash-banner { position: relative; width: 100%; height: 240px; margin-bottom: 32px; border-radius: 24px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 30px rgba(0,0,0,0.1); background: #0F172A; }
+        .dash-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 32px; }
+        @media (max-width: 768px) {
+          .dash-banner { height: 160px; border-radius: 16px; margin-bottom: 20px; }
+          .dash-banner h2 { font-size: 22px !important; letter-spacing: -0.5px !important; }
+          .dash-banner p { font-size: 13px !important; }
+          .dash-banner-pad { padding: 0 20px !important; }
+          .dash-stats-grid { grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+          .dash-main-grid { grid-template-columns: 1fr !important; }
+          .dash-stack-hdr { flex-direction: column; align-items: flex-start !important; }
+          .dash-hdr-btns { width: 100%; }
+          .dash-hdr-btns button { flex: 1; justify-content: center; }
+        }
       `}</style>
     </motion.div>
   );
