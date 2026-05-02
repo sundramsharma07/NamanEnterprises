@@ -59,7 +59,7 @@ function Login() {
   }, []);
 
   return (
-    <div style={styles.page}>
+    <div className="page-wrapper" style={styles.page}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,700;0,900;1,700&display=swap');
 
@@ -111,19 +111,51 @@ function Login() {
         }
 
         @media (max-width: 768px) {
+          .page-wrapper {
+            padding: 0 !important;
+            display: block !important;
+          }
           .main-container-login {
             flex-direction: column !important;
             height: auto !important;
+            min-height: 100vh !important;
             border-radius: 0 !important;
+            border: none !important;
+            box-shadow: none !important;
+            margin: 0 !important;
           }
           .branding-section-login {
+            display: flex !important;
+            flex: none !important;
+            height: 35vh !important;
+            min-height: 250px !important;
+            padding: 30px 20px !important;
+            justify-content: center !important;
+            align-items: center !important;
+            text-align: center !important;
+          }
+          .logo-badge {
+            margin-bottom: 15px !important;
+            justify-content: center !important;
+          }
+          .brand-text {
+            font-size: 42px !important;
+          }
+          .sub-brand-text {
+            margin-top: 5px !important;
+          }
+          .hero-text, .quote-wrapper {
             display: none !important;
           }
           .form-section-login {
+            flex: 1 !important;
             padding: 40px 20px !important;
-          }
-          .brand-text {
-            font-size: 48px !important;
+            border-radius: 30px 30px 0 0 !important;
+            margin-top: -30px !important;
+            z-index: 20 !important;
+            position: relative !important;
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.1) !important;
+            background: #FFFFFF !important;
           }
         }
       `}</style>
@@ -143,21 +175,21 @@ function Login() {
             transition={{ duration: 1, ease: "easeOut" }}
             style={styles.brandContent}
           >
-            <div style={styles.logoBadge}>
+            <div className="logo-badge" style={styles.logoBadge}>
                <Building2 size={40} color="#F59E0B" />
             </div>
             
             <h1 className="brand-text">NAMAN</h1>
             <p className="sub-brand-text">Enterprises</p>
 
-            <div style={styles.heroText}>
+            <div className="hero-text" style={styles.heroText}>
               <p style={styles.heroDesc}>
                 Building material stores at <br/>
                 <span style={{color: "#fff", fontWeight: "600"}}>Ajmatpur, Bihar, India</span>
               </p>
             </div>
 
-            <div style={styles.quoteWrapper}>
+            <div className="quote-wrapper" style={styles.quoteWrapper}>
               <AnimatePresence mode="wait">
                 <motion.div
                   key={quoteIdx}
@@ -223,12 +255,11 @@ const styles = {
     minHeight: "100vh",
     background: "#F8FAFC",
     display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
     fontFamily: "'Outfit', sans-serif",
     padding: "20px",
     position: "relative",
-    overflow: "hidden"
+    overflowX: "hidden",
+    overflowY: "auto"
   },
   ring1: {
     position: "absolute",
@@ -277,7 +308,8 @@ const styles = {
     boxShadow: "0 40px 100px -20px rgba(15, 23, 42, 0.12)",
     border: "1px solid #F1F5F9",
     position: "relative",
-    zIndex: 10
+    zIndex: 10,
+    margin: "auto"
   },
   brandingSection: {
     flex: 1.1,

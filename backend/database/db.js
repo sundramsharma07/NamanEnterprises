@@ -2,8 +2,8 @@ require("dotenv").config({ path: require("path").join(__dirname, "../.env") });
 const { Pool } = require("pg");
 
 let connectionString = process.env.DATABASE_URL || "";
-if (connectionString.includes("sslmode=require") && !connectionString.includes("uselibpqcompat=1")) {
-  connectionString += connectionString.includes("?") ? "&uselibpqcompat=1" : "?uselibpqcompat=1";
+if (connectionString.includes("sslmode=require") && !connectionString.includes("uselibpqcompat=true")) {
+  connectionString = connectionString.replace("sslmode=require", "sslmode=require&uselibpqcompat=true");
 }
 
 const pool = new Pool({
