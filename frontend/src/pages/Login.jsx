@@ -9,12 +9,36 @@ import {
   LayoutDashboard,
   ArrowRight,
   Globe,
-  Lock
+  Lock,
+  Quote
 } from "lucide-react";
+const QUOTES = [
+  {
+    en: "Hard work is the foundation of every great village.",
+    hi: "कड़ी मेहनत हर महान गाँव की नींव है।"
+  },
+  {
+    en: "Building communities, one brick at a time.",
+    hi: "एक-एक ईंट से समाज का निर्माण।"
+  },
+  {
+    en: "The sweat of the worker builds the future.",
+    hi: "मज़दूर का पसीना ही भविष्य का निर्माण करता है।"
+  },
+  {
+    en: "Strong foundations create lasting legacies.",
+    hi: "मज़बूत नींव से ही स्थायी विरासत बनती है।"
+  },
+  {
+    en: "From raw materials to rural dreams realized.",
+    hi: "कच्चे माल से ग्रामीण सपनों के साकार होने तक।"
+  }
+];
 
 function Login() {
   const { isLoaded } = useAuth();
   const [authError, setAuthError] = useState(null);
+  const [quoteIdx, setQuoteIdx] = useState(0);
 
   useEffect(() => {
     const handleClerkError = (event) => {
@@ -26,10 +50,30 @@ function Login() {
     return () => window.removeEventListener("clerk-error", handleClerkError);
   }, []);
 
+  // Quote Rotation Animation
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setQuoteIdx((prev) => (prev + 1) % QUOTES.length);
+    }, 5000); // Rotates every 5 seconds
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div style={styles.page}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,700;0,900;1,700&display=swap');
+
+        @keyframes floatAnimation {
+          0% { transform: translateY(0px) rotate(0deg); }
+          50% { transform: translateY(-30px) rotate(180deg); }
+          100% { transform: translateY(0px) rotate(360deg); }
+        }
+
+        @keyframes pulseGlow {
+          0% { opacity: 0.3; transform: scale(1); }
+          50% { opacity: 0.6; transform: scale(1.1); }
+          100% { opacity: 0.3; transform: scale(1); }
+        }
 
         .clerk-card {
           box-shadow: none !important;
@@ -84,6 +128,11 @@ function Login() {
         }
       `}</style>
 
+      {/* Decorative Background Animations */}
+      <div style={styles.ring1}></div>
+      <div style={styles.ring2}></div>
+      <div style={styles.ring3}></div>
+
       <div className="main-container-login" style={styles.mainContainer}>
         {/* Left Side: Brand & Visuals */}
         <div className="branding-section-login" style={styles.brandingSection}>
@@ -103,26 +152,26 @@ function Login() {
 
             <div style={styles.heroText}>
               <p style={styles.heroDesc}>
-                Premium Building Materials & Hardware Solutions. <br/>
-                Empowering Village Development since 2012.
+                Building material stores at <br/>
+                <span style={{color: "#fff", fontWeight: "600"}}>Ajmatpur, Bihar, India</span>
               </p>
             </div>
 
-            <div style={styles.statGrid}>
-              <div style={styles.statItem}>
-                <div style={styles.statIcon}><TrendingUp size={20} /></div>
-                <div>
-                  <div style={styles.statVal}>99.9%</div>
-                  <div style={styles.statLabel}>Quality</div>
-                </div>
-              </div>
-              <div style={styles.statItem}>
-                <div style={styles.statIcon}><ShieldCheck size={20} /></div>
-                <div>
-                  <div style={styles.statVal}>Trusted</div>
-                  <div style={styles.statLabel}>Partners</div>
-                </div>
-              </div>
+            <div style={styles.quoteWrapper}>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={quoteIdx}
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -15 }}
+                  transition={{ duration: 0.6, ease: "easeInOut" }}
+                  style={styles.transparentQuoteBox}
+                >
+                  <Quote size={24} color="#F59E0B" style={{ marginBottom: '10px', opacity: 0.7 }} />
+                  <p style={styles.quoteEn}>"{QUOTES[quoteIdx].en}"</p>
+                  <p style={styles.quoteHi}>"{QUOTES[quoteIdx].hi}"</p>
+                </motion.div>
+              </AnimatePresence>
             </div>
           </motion.div>
         </div>
@@ -178,17 +227,57 @@ const styles = {
     justifyContent: "center",
     fontFamily: "'Outfit', sans-serif",
     padding: "20px",
+    position: "relative",
+    overflow: "hidden"
+  },
+  ring1: {
+    position: "absolute",
+    width: "500px",
+    height: "500px",
+    borderRadius: "50%",
+    border: "2px solid rgba(245, 158, 11, 0.15)",
+    top: "-150px",
+    left: "-150px",
+    animation: "floatAnimation 12s ease-in-out infinite",
+    zIndex: 0,
+    pointerEvents: "none"
+  },
+  ring2: {
+    position: "absolute",
+    width: "700px",
+    height: "700px",
+    borderRadius: "50%",
+    border: "1px dashed rgba(37, 99, 235, 0.15)",
+    bottom: "-250px",
+    right: "-200px",
+    animation: "floatAnimation 18s ease-in-out infinite reverse",
+    zIndex: 0,
+    pointerEvents: "none"
+  },
+  ring3: {
+    position: "absolute",
+    width: "400px",
+    height: "400px",
+    borderRadius: "50%",
+    background: "radial-gradient(circle, rgba(245,158,11,0.03) 0%, rgba(245,158,11,0) 70%)",
+    top: "30%",
+    right: "20%",
+    animation: "pulseGlow 8s ease-in-out infinite",
+    zIndex: 0,
+    pointerEvents: "none"
   },
   mainContainer: {
     width: "100%",
     maxWidth: "1280px",
     height: "800px",
     background: "#FFFFFF",
-    borderRadius: "32px",
+    borderRadius: "40px", // Keeps the heavy curves
     display: "flex",
     overflow: "hidden",
     boxShadow: "0 40px 100px -20px rgba(15, 23, 42, 0.12)",
     border: "1px solid #F1F5F9",
+    position: "relative",
+    zIndex: 10
   },
   brandingSection: {
     flex: 1.1,
@@ -204,7 +293,7 @@ const styles = {
   brandOverlay: {
     position: "absolute",
     inset: 0,
-    background: "rgba(15, 23, 42, 0.75)", // Slightly darker for extreme contrast
+    background: "rgba(15, 23, 42, 0.75)",
     zIndex: 1,
   },
   brandContent: {
@@ -259,25 +348,42 @@ const styles = {
     textShadow: "0 2px 8px rgba(0,0,0,0.3)",
   },
   heroText: {
-    marginBottom: "60px",
-  },
-  heroHeadline: {
-    fontSize: "48px",
-    fontWeight: "800",
-    lineHeight: "1.1",
-    marginBottom: "24px",
-    letterSpacing: "-1.5px",
+    marginBottom: "40px",
+    marginTop: "20px"
   },
   heroDesc: {
     fontSize: "18px",
-    color: "#94A3B8",
+    color: "#CBD5E1",
     lineHeight: "1.6",
-    maxWidth: "480px",
+    letterSpacing: "0.5px"
   },
-  statGrid: {
-    display: "flex",
-    gap: "40px",
-    marginBottom: "60px",
+  quoteWrapper: {
+    marginTop: "auto",
+    marginBottom: "40px",
+    minHeight: "120px",
+    position: "relative"
+  },
+  transparentQuoteBox: {
+    padding: "0",
+    background: "transparent",
+    border: "none",
+    boxShadow: "none"
+  },
+  quoteEn: {
+    fontFamily: "'Playfair Display', serif",
+    fontSize: "19px",
+    fontStyle: "italic",
+    margin: "0 0 10px 0",
+    color: "#FFFFFF",
+    lineHeight: "1.4"
+  },
+  quoteHi: {
+    fontFamily: "'Hind', sans-serif",
+    fontSize: "18px",
+    fontWeight: "500",
+    margin: 0,
+    color: "#F59E0B",
+    lineHeight: "1.4"
   },
   statItem: {
     display: "flex",
