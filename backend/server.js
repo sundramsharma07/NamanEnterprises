@@ -13,7 +13,10 @@ require("./utils/backupScheduler");
 
 // middlewares
 app.use(helmet());
-app.use(cors());
+app.use(cors({
+  origin: ["https://namanenterprises0203.onrender.com", "http://localhost:5173", "http://localhost:5000"],
+  credentials: true
+}));
 app.use(express.json());
 
 // rate limiting
