@@ -16,21 +16,20 @@ async function exportOrdersToExcel() {
     { header: "Created At", key: "created_at", width: 22 }
   ];
 
-  return new Promise((resolve, reject) => {
-    db.all("SELECT * FROM orders", [], async (err, rows) => {
-      if (err) {
-        return reject(err);
-      }
+  try {
+    const result = await db.query("SELECT * FROM orders");
+    const rows = result.rows;
 
-      rows.forEach((row) => {
-        worksheet.addRow(row);
-      });
-
-      const filePath = path.join(__dirname, "../exports/orders.xlsx");
-      await workbook.xlsx.writeFile(filePath);
-      resolve(filePath);
+    rows.forEach((row) => {
+      worksheet.addRow(row);
     });
-  });
+
+    const filePath = path.join(__dirname, "../exports/orders.xlsx");
+    await workbook.xlsx.writeFile(filePath);
+    return filePath;
+  } catch (err) {
+    throw err;
+  }
 }
 
-module.exports = exportOrdersToExcel;
+module.exports = exportOrdersToExcel;

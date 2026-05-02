@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import api from "../services/api";
 import { 
   Users, 
@@ -11,7 +11,9 @@ import {
   ExternalLink,
   Trash2,
   Printer,
-  Eye
+  Eye,
+  Pencil,
+  X
 } from "lucide-react";
 import { Skeleton } from "../components/ui";
 import { Button } from "../components/ui/Button";
@@ -20,10 +22,15 @@ import toast from "react-hot-toast";
 
 export default function Customers() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [customers, setCustomers] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
+  
+  // Initialize search from URL
+  const [searchTerm, setSearchTerm] = useState(new URLSearchParams(location.search).get("q") || "");
+  
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState(null);
   
   const [formData, setFormData] = useState({ name: "", phone: "", address: "" });
 
@@ -44,17 +51,48 @@ export default function Customers() {
     fetchCustomers();
   }, [fetchCustomers]);
 
+  useEffect(() => {
+    const q = new URLSearchParams(location.search).get("q");
+    if (q !== null) {
+      setSearchTerm(q);
+    }
+  }, [location.search]);
+
   const handleAddSubmit = async (e) => {
     e.preventDefault();
     try {
-      await api.post("/customers", formData);
-      toast.success("Customer added successfully!");
+      if (editingCustomer) {
+        await api.put(`/customers/${editingCustomer.id}`, formData);
+        toast.success("Customer updated successfully!");
+      } else {
+        await api.post("/customers", formData);
+        toast.success("Customer added successfully!");
+      }
       setFormData({ name: "", phone: "", address: "" });
       setShowAddForm(false);
+      setEditingCustomer(null);
       fetchCustomers();
     } catch (err) {
       toast.error(err.response?.data?.message || "Operation failed");
     }
+  };
+
+  const startEdit = (e, customer) => {
+    e.stopPropagation();
+    setEditingCustomer(customer);
+    setFormData({
+      name: customer.name,
+      phone: customer.phone,
+      address: customer.address || ""
+    });
+    setShowAddForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const closeForm = () => {
+    setShowAddForm(false);
+    setEditingCustomer(null);
+    setFormData({ name: "", phone: "", address: "" });
   };
 
   const handleDelete = async (e, id) => {
@@ -128,7 +166,7 @@ export default function Customers() {
           </Button>
           <Button 
             variant={showAddForm ? "danger" : "primary"}
-            onClick={() => setShowAddForm(!showAddForm)} 
+            onClick={showAddForm ? closeForm : () => setShowAddForm(true)} 
           >
             {showAddForm ? "Close" : <><UserPlus size={16} /> Add Customer</>}
           </Button>
@@ -145,7 +183,7 @@ export default function Customers() {
             style={{ overflow: "hidden" }}
           >
             <div style={styles.addCard}>
-              <h3 style={styles.secTitle}>New Customer</h3>
+              <h3 style={styles.secTitle}>{editingCustomer ? "Edit Customer" : "New Customer"}</h3>
               <form onSubmit={handleAddSubmit} style={styles.formRow}>
                 <div style={styles.field}>
                   <label style={styles.label}>Full Name</label>
@@ -178,7 +216,7 @@ export default function Customers() {
                   />
                 </div>
                 <Button type="submit" variant="primary">
-                  Add <ArrowRight size={14} />
+                  {editingCustomer ? "Update Details" : "Add Customer"} <ArrowRight size={14} />
                 </Button>
               </form>
             </div>
@@ -258,6 +296,13 @@ export default function Customers() {
                       style={styles.actionBtn}
                     >
                       <Printer size={14} />
+                    </button>
+                    <button 
+                      onClick={(e) => startEdit(e, c)} 
+                      title="Edit"
+                      style={styles.actionBtn}
+                    >
+                      <Pencil size={14} />
                     </button>
                     <button 
                       onClick={(e) => { e.stopPropagation(); navigate(`/customers/${c.id}`); }} 

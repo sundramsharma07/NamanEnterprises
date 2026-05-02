@@ -5,6 +5,8 @@
   "main": "index.js",
   "scripts": {
     "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm run dev\"",
+    "seed": "cd backend && npm run seed",
+    "reset": "cd backend && npm run reset",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

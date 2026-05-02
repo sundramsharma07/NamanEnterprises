@@ -56,7 +56,21 @@ function DueCustomers() {
 
   const sendWhatsAppReminder = (customer) => {
     const age = getDueAge(customer.oldest_due_date);
-    const message = `Hello ${customer.name}, this is a reminder from Naman Enterprises regarding your pending balance of ${formatCurrency(customer.total_due)}. Your oldest due is pending for ${age} days. Kindly settle it at your earliest convenience. Thank you!`;
+    const latestDate = customer.latest_order_date ? new Date(customer.latest_order_date).toLocaleDateString('en-IN') : 'N/A';
+    
+    // Using standard emoji characters with clear labels
+    const message = `नमस्ते ${customer.name},\n\nनमन एंटरप्राइजेज (Naman Enterprises) से आपका बकाया विवरण:\n\n` +
+      `*ऑर्डर विवरण (नवीनतम):*\n` +
+      `ऑर्डर आईडी: #${customer.latest_order_id || 'N/A'}\n` +
+      `दिनांक: ${latestDate}\n` +
+      `कुल राशि: ${formatCurrency(customer.latest_order_total)}\n` +
+      `जमा राशि: ${formatCurrency(customer.latest_order_paid)}\n` +
+      `इस ऑर्डर का बकाया: ${formatCurrency(customer.latest_order_remaining)}\n\n` +
+      `--------------------------\n` +
+      `*कुल बकाया (सभी बिल):* ${formatCurrency(customer.total_due)}\n` +
+      `पुराना बकाया: ${age} दिनों से\n\n` +
+      `कृपया जल्द से जल्द भुगतान कर अपना हिसाब साफ़ करें। धन्यवाद!`;
+
     const encodedMessage = encodeURIComponent(message);
     const whatsappUrl = `https://wa.me/${customer.phone.replace(/\D/g,'')}?text=${encodedMessage}`;
     window.open(whatsappUrl, '_blank');
@@ -163,6 +177,8 @@ function DueCustomers() {
             <thead style={styles.thead}>
               <tr>
                 <th style={styles.th}>Customer</th>
+                <th style={styles.th}>Total Goods</th>
+                <th style={styles.th}>Deposited</th>
                 <th style={styles.th}>Outstanding</th>
                 <th style={styles.th}>Age</th>
                 <th style={{ ...styles.th, textAlign: "right" }}>Actions</th>
@@ -190,7 +206,13 @@ function DueCustomers() {
                         </div>
                       </div>
                     </td>
-                    <td style={{ ...styles.td, fontWeight: 700, fontSize: "15px", color: "#0F172A" }}>
+                    <td style={styles.td}>
+                      <span style={{ fontWeight: 600, color: "#475569" }}>{formatCurrency(c.total_purchase)}</span>
+                    </td>
+                    <td style={styles.td}>
+                      <span style={{ fontWeight: 600, color: "#16a34a" }}>{formatCurrency(c.total_deposited)}</span>
+                    </td>
+                    <td style={{ ...styles.td, fontWeight: 700, fontSize: "15px", color: "#ef4444" }}>
                       {formatCurrency(c.total_due)}
                     </td>
                     <td style={styles.td}>

@@ -4,6 +4,7 @@ import {
   Route,
   useLocation,
   Navigate,
+  useNavigate,
 } from "react-router-dom";
 import {
   useAuth,
@@ -12,9 +13,11 @@ import {
   UserButton,
   AuthenticateWithRedirectCallback,
 } from "@clerk/react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Toaster } from "react-hot-toast";
-
+import { motion, AnimatePresence } from "framer-motion";
+import api from "./services/api";
+import { Search, Bell } from "lucide-react";
 import Navbar from "./components/Navbar";
 import GreetingPage from "./pages/GreetingPage";
 import Dashboard from "./pages/Dashboard";
@@ -55,13 +58,56 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
-import { Search, Bell } from "lucide-react";
-
 function TopBar({ onMenuClick }) {
   const { isLoaded, userId } = useAuth();
   const { user } = useUser();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [query, setQuery] = useState("");
+  const [notifications, setNotifications] = useState([]);
+  const [showNotif, setShowNotif] = useState(false);
 
-  // Clerk authentication is sufficient - no additional admin checks needed
+  useEffect(() => {
+    const fetchAlerts = async () => {
+      try {
+        const res = await api.get("/orders/due/customers");
+        const alerts = (res.data.customers || [])
+          .filter(c => Number(c.total_due) > 5000) // Threshold for critical debt
+          .map(c => ({
+            id: c.id,
+            title: `Credit Warning: ${c.name}`,
+            msg: `High outstanding balance (${formatCurrency(c.total_due)}). Avoid further credit.`,
+            type: 'alert'
+          }));
+        setNotifications(alerts);
+      } catch (err) {
+        console.error("Alerts fetch error:", err);
+      }
+    };
+    fetchAlerts();
+  }, []);
+
+  const formatCurrency = (num) => {
+    return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(num || 0);
+  };
+
+  useEffect(() => {
+    // Clear search bar when navigating away from search-related paths
+    if (!location.search.includes("q=")) {
+      setQuery("");
+    }
+  }, [location]);
+
+  const handleSearch = (e) => {
+    if (e.key === "Enter") {
+      if (query.trim()) {
+        // If on products page, stay on products, otherwise go to customers
+        const target = location.pathname.includes("products") ? "/products" : "/customers";
+        navigate(`${target}?q=${encodeURIComponent(query.trim())}`);
+      }
+    }
+  };
+
   if (!isLoaded || !userId || !user) return null;
 
   return (
@@ -78,7 +124,7 @@ function TopBar({ onMenuClick }) {
         zIndex: 10,
       }}
     >
-      {/* Mobile menu button */}
+      {/* ... (Mobile menu button) ... */}
       <button 
         onClick={onMenuClick}
         style={{
@@ -100,14 +146,17 @@ function TopBar({ onMenuClick }) {
         </svg>
       </button>
 
-      <div style={{ position: "relative", width: "400px", flex: 1, maxWidth: "400px" }}>
+      <div className="hide-mobile" style={{ position: "relative", width: "400px", flex: 1, maxWidth: "400px" }}>
         <Search 
           size={16} 
           style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} 
         />
         <input 
           type="text" 
-          placeholder="Search..." 
+          placeholder="Search products or customers... (Press Enter)" 
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={handleSearch}
           style={{
             width: "100%",
             padding: "10px 14px 10px 40px",
@@ -125,19 +174,64 @@ function TopBar({ onMenuClick }) {
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
-        <button style={{ 
-          background: "none", 
-          border: "none", 
-          color: "#94a3b8", 
-          cursor: "pointer",
-          padding: "6px",
-          borderRadius: "8px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}>
-          <Bell size={18} />
-        </button>
+        <div style={{ position: "relative" }}>
+          <button 
+            onClick={() => setShowNotif(!showNotif)}
+            style={{ 
+              background: "none", 
+              border: "none", 
+              color: notifications.length > 0 ? "#ef4444" : "#94a3b8", 
+              cursor: "pointer",
+              padding: "6px",
+              borderRadius: "8px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Bell size={18} className={notifications.length > 0 ? "pulse-notif" : ""} />
+            {notifications.length > 0 && (
+              <div style={{ position: "absolute", top: "4px", right: "4px", width: "8px", height: "8px", background: "#ef4444", borderRadius: "50%", border: "2px solid #fff" }} />
+            )}
+          </button>
+
+          <AnimatePresence>
+            {showNotif && (
+              <motion.div 
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                style={{
+                  position: "absolute",
+                  top: "100%",
+                  right: 0,
+                  width: "300px",
+                  background: "#fff",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "12px",
+                  boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
+                  padding: "16px",
+                  marginTop: "12px",
+                  zIndex: 100,
+                }}
+              >
+                <h4 style={{ margin: "0 0 12px", fontSize: "14px", fontWeight: "700", color: "#0F172A" }}>Notifications</h4>
+                {notifications.length > 0 ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    {notifications.map(n => (
+                      <div key={n.id} style={{ padding: "10px", background: "#FEF2F2", borderRadius: "8px", border: "1px solid #FEE2E2" }}>
+                        <div style={{ fontSize: "12px", fontWeight: "700", color: "#B91C1C", marginBottom: "2px" }}>{n.title}</div>
+                        <div style={{ fontSize: "11px", color: "#991B1B" }}>{n.msg}</div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ textAlign: "center", padding: "20px", color: "#94a3b8", fontSize: "12px" }}>No urgent alerts</div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
         <div style={{ width: "1px", height: "24px", background: "#e2e8f0" }} />
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <div style={{ textAlign: "right" }}>

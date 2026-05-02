@@ -13,7 +13,13 @@ import {
   ChevronDown,
   ChevronUp,
   Clock,
-  IndianRupee
+  IndianRupee,
+  MessageCircle,
+  ShieldCheck,
+  ShieldAlert,
+  Zap,
+  TrendingUp,
+  Wallet
 } from "lucide-react";
 import { Card, Skeleton } from "../components/ui";
 import { motion, AnimatePresence } from "framer-motion";
@@ -62,6 +68,15 @@ export default function CustomerDueDetails() {
     fetchDetails();
   }, [fetchDetails]);
 
+  const sendWhatsAppOrderReminder = (order) => {
+    const date = new Date(order.created_at).toLocaleDateString('en-IN');
+    const message = `नमस्ते ${customerInfo.name} \u{1F44B},\n\nनमन एंटरप्राइजेज (Naman Enterprises) \u{1F3D7} से आपके ऑर्डर का विवरण:\n\n\u{1F194} *ऑर्डर आईडी:* #${order.order_id}\n\u{1F4C5} *दिनांक:* ${date}\n\u{1F4B0} *कुल बिल:* ${formatCurrency(order.total_amount)}\n\u{2705} *जमा राशि:* ${formatCurrency(order.paid_amount)}\n\u{26A0}\u{FE0F} *बकाया राशि:* ${formatCurrency(order.remaining_amount)}\n\nकृपया बकाया राशि का भुगतान जल्द करें। \u{1F64F}\nधन्यवाद! \u{2728}`;
+    
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappUrl = `https://wa.me/${customerInfo.phone.replace(/\D/g,'')}?text=${encodedMessage}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -85,7 +100,10 @@ export default function CustomerDueDetails() {
 
     try {
       setProcessingOrder(selectedOrder.order_id);
-      await api.post(`/orders/${selectedOrder.order_id}/pay`, { amount });
+      await api.post(`/orders/${selectedOrder.order_id}/pay`, { 
+        amount,
+        payment_method: "Online" // Simplified for now, can be a dropdown
+      });
       toast.success("Payment recorded successfully!");
       setShowPaymentModal(false);
       setSelectedOrder(null);
@@ -136,14 +154,55 @@ export default function CustomerDueDetails() {
           <h2 style={styles.custName}>{customerInfo.name}</h2>
           <div style={styles.custMeta}>
             <span style={styles.metaItem}><Phone size={14} /> {customerInfo.phone}</span>
-            <span style={styles.metaItem}><Receipt size={14} /> {customerInfo.totalOrders} Total Orders</span>
+            <span style={styles.metaItem}><Receipt size={14} /> {customerInfo.totalOrders || 0} Orders</span>
           </div>
         </div>
-        <div style={styles.dueSummary}>
-          <div style={styles.sumLabel}>Total Outstanding</div>
-          <div style={styles.sumVal}>{formatCurrency(customerInfo.total_due)}</div>
+
+        <div style={styles.reliabilityPanel}>
+          <div style={styles.scoreHeader}>
+            <div style={styles.scoreTitle}>Reliability Rating</div>
+            <div style={{ 
+              ...styles.scoreBadge, 
+              color: customerInfo.is_reliable ? "#16a34a" : "#ef4444",
+              background: customerInfo.is_reliable ? "rgba(22, 163, 74, 0.08)" : "rgba(239, 68, 68, 0.08)"
+            }}>
+              {customerInfo.is_reliable ? <ShieldCheck size={14} /> : <ShieldAlert size={14} />}
+              {customerInfo.is_reliable ? "Reliable for Credit" : "Caution: High Debt"}
+            </div>
+          </div>
+          <div style={styles.scoreMeterContainer}>
+            <div style={{ ...styles.scoreMeterFill, width: `${customerInfo.trust_score}%`, background: (customerInfo.trust_score || 0) > 60 ? "#16a34a" : "#ef4444" }} />
+          </div>
+          <div style={styles.scoreFooter}>
+            Trust Score: {customerInfo.trust_score || 0}/100
+          </div>
         </div>
       </Card>
+
+      {/* Stats Row */}
+      <div style={styles.statsRow}>
+        <div style={styles.miniStatsCard}>
+          <div style={styles.miniIcon}><Zap size={16} color="#F59E0B" /></div>
+          <div>
+            <div style={styles.miniLabel}>Consistency</div>
+            <div style={styles.miniValue}>{(customerInfo.trust_score || 0) > 70 ? "High" : "Average"}</div>
+          </div>
+        </div>
+        <div style={styles.miniStatsCard}>
+          <div style={styles.miniIcon}><Wallet size={16} color="#10B981" /></div>
+          <div>
+            <div style={styles.miniLabel}>Main Channel</div>
+            <div style={styles.miniValue}>Cash / Online</div>
+          </div>
+        </div>
+        <div style={styles.miniStatsCard}>
+          <div style={styles.miniIcon}><TrendingUp size={16} color="#3B82F6" /></div>
+          <div style={styles.dueSummary}>
+            <div style={styles.sumLabel}>Total Outstanding</div>
+            <div style={styles.sumVal}>{formatCurrency(customerInfo.total_due)}</div>
+          </div>
+        </div>
+      </div>
 
       <div style={styles.mainGrid}>
         {/* Pending Orders Column */}
@@ -177,12 +236,12 @@ export default function CustomerDueDetails() {
                   
                   <div style={styles.orderDetails}>
                     <div style={styles.detailRow}>
-                      <span>Total Invoice</span>
-                      <span>{formatCurrency(order.total_amount)}</span>
+                      <span>Due at Purchase</span>
+                      <span style={{ fontWeight: 700 }}>{formatCurrency(order.total_amount)}</span>
                     </div>
                     <div style={styles.detailRow}>
-                      <span>Collected</span>
-                      <span style={{ color: "#10b981" }}>{formatCurrency(order.paid_amount)}</span>
+                      <span>Amount Deposited</span>
+                      <span style={{ color: "#10b981", fontWeight: 700 }}>{formatCurrency(order.paid_amount)}</span>
                     </div>
                   </div>
 
@@ -195,7 +254,10 @@ export default function CustomerDueDetails() {
                       {expandedOrderId === order.order_id ? "Hide Items" : "View Items"}
                     </button>
                     <button style={styles.payBtn} onClick={() => openPaymentModal(order)}>
-                      <CreditCard size={16} /> Collect Payment
+                      <CreditCard size={16} /> Pay
+                    </button>
+                    <button style={styles.waOrderBtn} onClick={() => sendWhatsAppOrderReminder(order)}>
+                      <MessageCircle size={16} /> Remind
                     </button>
                   </div>
 
@@ -254,6 +316,12 @@ export default function CustomerDueDetails() {
                     <div style={styles.entryAmount}>
                       {entry.type === 'GIVEN_DUE' ? '+' : '-'} {formatCurrency(entry.amount)}
                     </div>
+                    {entry.order_total && entry.type === 'GIVEN_DUE' && (
+                      <div style={styles.orderContext}>
+                        <span>Total: {formatCurrency(entry.order_total)}</span>
+                        <span style={{ color: "var(--success)" }}>Paid: {formatCurrency(entry.order_initial_paid)}</span>
+                      </div>
+                    )}
                     <div style={styles.entryReason}>{entry.reason}</div>
                     <div style={styles.entryBalance}>New Balance: {formatCurrency(entry.balance_after)}</div>
                   </div>
@@ -325,8 +393,23 @@ const styles = {
   profileBanner: { display: "flex", alignItems: "center", gap: "20px", padding: "24px", marginBottom: "32px", border: "1px solid #e2e8f0", borderRadius: "16px", background: "#fff" },
   avatar: { width: "56px", height: "56px", background: "#2563EB", color: "#fff", borderRadius: "16px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px", fontWeight: "800", boxShadow: "0 4px 12px rgba(37,99,235,0.15)" },
   custName: { fontSize: "20px", fontWeight: "700", color: "#0F172A", margin: "0 0 6px" },
-  custMeta: { display: "flex", gap: "16px", color: "#64748b", fontSize: "13px" },
-  metaItem: { display: "flex", alignItems: "center", gap: "6px" },
+  custMeta: { display: "flex", gap: "16px", marginTop: "8px" },
+  metaItem: { display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", color: "#64748b" },
+  
+  reliabilityPanel: { paddingLeft: "24px", borderLeft: "1px solid #f1f5f9", minWidth: "220px" },
+  scoreHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" },
+  scoreTitle: { fontSize: "11px", fontWeight: "700", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.5px" },
+  scoreBadge: { display: "flex", alignItems: "center", gap: "4px", padding: "4px 10px", borderRadius: "20px", fontSize: "11px", fontWeight: "700" },
+  scoreMeterContainer: { height: "6px", background: "#f1f5f9", borderRadius: "10px", overflow: "hidden", marginBottom: "8px" },
+  scoreMeterFill: { height: "100%", borderRadius: "10px", transition: "width 1s ease-in-out" },
+  scoreFooter: { fontSize: "11px", fontWeight: "600", color: "#64748b" },
+
+  statsRow: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "20px", marginBottom: "32px" },
+  miniStatsCard: { display: "flex", alignItems: "center", gap: "16px", padding: "16px", background: "#fff", border: "1px solid #e2e8f0", borderRadius: "16px", boxShadow: "0 1px 3px rgba(0,0,0,0.02)" },
+  miniIcon: { width: "40px", height: "40px", borderRadius: "12px", background: "#f8fafc", display: "flex", alignItems: "center", justifyContent: "center" },
+  miniLabel: { fontSize: "11px", color: "#94a3b8", fontWeight: "500", marginBottom: "2px" },
+  miniValue: { fontSize: "16px", fontWeight: "700", color: "#0F172A" },
+
   dueSummary: { textAlign: "right", padding: "0 20px", borderLeft: "1px solid #f1f5f9" },
   sumLabel: { fontSize: "11px", color: "#ef4444", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "4px" },
   sumVal: { fontSize: "28px", fontWeight: "800", color: "#ef4444" },
@@ -345,7 +428,8 @@ const styles = {
   detailRow: { display: "flex", justifyContent: "space-between", fontSize: "13px", color: "#64748b", marginBottom: "6px" },
   orderActions: { display: "flex", gap: "10px" },
   expandBtn: { flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", padding: "10px", background: "#fff", border: "1px solid #e2e8f0", borderRadius: "8px", cursor: "pointer", fontSize: "12px", fontWeight: "500", color: "#64748b", fontFamily: "inherit" },
-  payBtn: { flex: 1.5, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", padding: "10px", background: "#2563EB", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontSize: "12px", fontWeight: "600", fontFamily: "inherit", boxShadow: "0 2px 6px rgba(37,99,235,0.2)" },
+  payBtn: { flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", padding: "10px", background: "#2563EB", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontSize: "12px", fontWeight: "600", fontFamily: "inherit", boxShadow: "0 2px 6px rgba(37,99,235,0.2)" },
+  waOrderBtn: { flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", padding: "10px", background: "#16a34a", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontSize: "12px", fontWeight: "600", fontFamily: "inherit", boxShadow: "0 2px 6px rgba(22,163,74,0.2)" },
   itemsBlock: { marginTop: "16px", padding: "14px", background: "#F8FAFC", border: "1px solid #f1f5f9", borderRadius: "10px" },
   itemsTable: { width: "100%", fontSize: "12px", color: "#64748b" },
 
@@ -357,6 +441,7 @@ const styles = {
   entryDate: { fontSize: "11px", color: "#94a3b8", fontWeight: "500" },
   typeBadge: { padding: "3px 8px", borderRadius: "6px", fontSize: "10px", fontWeight: "600" },
   entryAmount: { fontSize: "16px", fontWeight: "700", color: "#0F172A", marginBottom: "4px" },
+  orderContext: { display: "flex", gap: "10px", fontSize: "11px", fontWeight: "600", color: "#94a3b8", marginBottom: "6px", background: "#f8fafc", padding: "4px 8px", borderRadius: "6px", width: "fit-content" },
   entryReason: { fontSize: "13px", color: "#64748b", marginBottom: "6px" },
   entryBalance: { fontSize: "11px", color: "#94a3b8", fontWeight: "500" },
 

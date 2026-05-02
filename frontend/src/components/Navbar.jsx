@@ -58,27 +58,48 @@ function Navbar() {
       <style>{css}</style>
       
       {/* Brand Logo */}
-      <Link to="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: "12px" }}>
+      <Link to="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: "14px" }}>
         <div
           style={{
-            width: "36px",
-            height: "36px",
-            background: "#2563EB",
-            borderRadius: "10px",
+            width: "42px",
+            height: "42px",
+            background: "linear-gradient(135deg, #0F172A 0%, #334155 100%)",
+            borderRadius: "12px",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            color: "#ffffff",
-            boxShadow: "0 2px 8px rgba(37, 99, 235, 0.25)",
+            color: "#F59E0B", // Amber gold
+            boxShadow: "0 4px 12px rgba(15, 23, 42, 0.15)",
+            border: "1px solid rgba(245, 158, 11, 0.2)",
           }}
         >
-          <Building2 size={20} strokeWidth={2.5} />
+          <Building2 size={24} strokeWidth={2} />
         </div>
-        <span 
-          style={{ fontSize: "17px", fontWeight: "700", color: "#0F172A", letterSpacing: "-0.3px" }}
-        >
-          Naman Enterprises
-        </span>
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <span 
+            style={{ 
+              fontSize: "22px", 
+              fontWeight: "900", 
+              color: "#0F172A", 
+              letterSpacing: "-0.8px", 
+              lineHeight: "0.9",
+              fontFamily: "'Outfit', sans-serif" 
+            }}
+          >
+            NAMAN
+          </span>
+          <span 
+            style={{ 
+              fontSize: "12px", 
+              fontWeight: "800", 
+              color: "#D97706", // Slightly darker amber for better contrast on white
+              letterSpacing: "2px", 
+              textTransform: "uppercase" 
+            }}
+          >
+            Enterprises
+          </span>
+        </div>
       </Link>
 
       {/* Desktop Links */}

@@ -14,7 +14,25 @@ import {
 import { Skeleton, Card } from "../components/ui";
 import { motion, AnimatePresence } from "framer-motion";
 
+const BANNER_IMAGES = [
+  "/images/workers.png",
+  "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?q=80&w=1200&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1590483734724-383b85ad9390?q=80&w=1200&auto=format&fit=crop",
+  "/images/premium_store.png",
+  "/images/store2.png",
+  "/images/store4.png"
+];
+
 function Dashboard() {
+  const [bgIndex, setBgIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setBgIndex((prev) => (prev + 1) % BANNER_IMAGES.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
+
   const [stats, setStats] = useState({
     customers: 0,
     products: 0,
@@ -128,36 +146,36 @@ function Dashboard() {
 
   const dashCards = useMemo(() => [
     { 
-      label: "Total Revenue", 
+      label: "Total Sales", 
       value: stats.totalRevenue, 
-      icon: IndianRupee, 
+      icon: TrendingUp, 
       iconBg: "rgba(37, 99, 235, 0.08)",
       iconColor: "#2563EB",
-      detail: "Cumulative Sales" 
+      detail: "Gross Revenue" 
     },
     { 
-      label: "Balance Due", 
+      label: "Debt Recovered", 
+      value: stats.paid, 
+      icon: IndianRupee, 
+      iconBg: "rgba(22, 163, 74, 0.08)",
+      iconColor: "#16a34a",
+      detail: "Total Payments Received" 
+    },
+    { 
+      label: "Debt Given", 
       value: stats.due, 
       icon: AlertTriangle, 
       iconBg: "rgba(239, 68, 68, 0.08)",
       iconColor: "#ef4444",
-      detail: "Pending Recovery" 
+      detail: "Pending Outstanding" 
     },
     { 
-      label: "Inventory", 
-      value: stats.products, 
-      icon: Package, 
-      iconBg: "rgba(22, 163, 74, 0.08)",
-      iconColor: "#16a34a",
-      detail: "Active Stock Items" 
-    },
-    { 
-      label: "Customer Base", 
+      label: "Customers", 
       value: stats.customers, 
       icon: Users, 
       iconBg: "rgba(56, 189, 248, 0.08)",
       iconColor: "#38BDF8",
-      detail: "Total Customers" 
+      detail: "Total Profiles" 
     }
   ], [stats]);
 
@@ -183,7 +201,56 @@ function Dashboard() {
       transition={{ duration: 0.5 }}
       style={styles.container}
     >
-      <header style={styles.header}>
+      {/* Store Banner */}
+      <div style={{ position: "relative", width: "100%", height: "240px", marginBottom: "32px", borderRadius: "24px", overflow: "hidden", border: "1px solid rgba(255, 255, 255, 0.1)", boxShadow: "0 10px 30px rgba(0,0,0,0.1)", background: "#0F172A" }}>
+        <AnimatePresence initial={false}>
+          <motion.div 
+            key={bgIndex}
+            initial={{ x: "100%", opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: "-100%", opacity: 0 }}
+            transition={{ type: "spring", stiffness: 80, damping: 20 }}
+            style={{
+              position: "absolute",
+              inset: 0,
+              background: `linear-gradient(rgba(15, 23, 42, 0.6), rgba(15, 23, 42, 0.6)), url('${BANNER_IMAGES[bgIndex]}') center/cover no-repeat`,
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              padding: "0 40px",
+            }}
+          >
+            <div style={{ position: "relative", zIndex: 2 }}>
+              <h2 style={{ color: "#F59E0B", fontSize: "36px", fontWeight: "900", margin: 0, letterSpacing: "-1.5px", fontFamily: "'Outfit', sans-serif" }}>NAMAN ENTERPRISES</h2>
+              <p style={{ color: "rgba(255,255,255,0.9)", fontSize: "18px", margin: "8px 0 0 0", fontWeight: "500", textShadow: "0 2px 4px rgba(0,0,0,0.3)" }}>Building Rural Infrastructure with Trust & Quality</p>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Navigation Dots */}
+        <div style={{ position: "absolute", bottom: "20px", left: "50%", transform: "translateX(-50%)", display: "flex", gap: "8px", zIndex: 10 }}>
+          {BANNER_IMAGES.map((_, i) => (
+            <div 
+              key={i} 
+              onClick={() => setBgIndex(i)}
+              style={{
+                width: i === bgIndex ? "24px" : "8px",
+                height: "8px",
+                background: i === bgIndex ? "#F59E0B" : "rgba(255,255,255,0.4)",
+                borderRadius: "100px",
+                transition: "all 0.3s ease",
+                cursor: "pointer"
+              }}
+            />
+          ))}
+        </div>
+
+        <div style={{ position: "absolute", right: "40px", bottom: "20px", zIndex: 10 }}>
+           <div style={{ padding: "8px 20px", background: "rgba(255,255,255,0.15)", borderRadius: "100px", color: "#fff", fontSize: "13px", fontWeight: "700", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.2)" }}>Authorized Portal</div>
+        </div>
+      </div>
+
+      <header className="stack-mobile" style={styles.header}>
         <div style={styles.titleArea}>
           <h1 style={styles.title}>Dashboard</h1>
           <p style={styles.subtitle}>Welcome to Naman Enterprises management portal</p>
@@ -211,7 +278,7 @@ function Dashboard() {
       </header>
 
       {/* Stats Grid */}
-      <div style={styles.statsGrid}>
+      <div className="grid-mobile-1" style={styles.statsGrid}>
         {dashCards.map((card, i) => (
           <motion.div
             key={i}
@@ -242,48 +309,49 @@ function Dashboard() {
       </div>
 
       <div style={styles.mainGrid}>
-        {/* Today's Pulse Activity Feed */}
+        {/* Business Analytics & Growth */}
         <div style={styles.pulseCard}>
           <div style={styles.secHeader}>
-            <div style={styles.pulseIndicator}>
-              <div style={styles.pulseDot} />
-            </div>
-            <h3 style={styles.secTitle}>Today's Activity</h3>
+            <TrendingUp size={18} color="#2563EB" />
+            <h3 style={styles.secTitle}>Business Growth</h3>
           </div>
-          <div style={styles.activityList}>
-            <AnimatePresence>
-              {dailyActivity.length > 0 ? (
-                dailyActivity.map((act, i) => (
-                  <motion.div 
-                    key={i} 
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.3 + (i * 0.05) }}
-                    style={styles.actItem}
-                  >
-                    <div style={{ 
-                      ...styles.actIcon, 
-                      background: act.type === 'order' ? 'rgba(37, 99, 235, 0.08)' : act.type === 'stock' ? 'rgba(239, 68, 68, 0.08)' : 'rgba(22, 163, 74, 0.08)', 
-                      color: act.type === 'order' ? '#2563EB' : act.type === 'stock' ? '#ef4444' : '#16a34a' 
-                    }}>
-                      {act.type === 'order' ? <ShoppingCart size={16} /> : act.type === 'stock' ? <AlertTriangle size={16} /> : <IndianRupee size={16} />}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={styles.actMain}>{act.title}</div>
-                      <div style={styles.actSub}>{act.sub}</div>
-                    </div>
-                    <div style={styles.actTime}>
-                      {new Date(act.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </div>
-                  </motion.div>
-                ))
-              ) : (
-                <div style={styles.emptyState}>
-                  <div style={styles.emptyIcon}><Activity size={28} /></div>
-                  <p style={{ margin: 0, fontSize: "14px" }}>No activity recorded today</p>
-                </div>
-              )}
-            </AnimatePresence>
+          
+          <div style={styles.growthContainer}>
+            <div style={styles.growthItem}>
+              <div style={styles.growthLabel}>Recovery Rate</div>
+              <div style={styles.growthValue}>
+                {stats.totalRevenue > 0 ? ((stats.paid / stats.totalRevenue) * 100).toFixed(1) : 0}%
+              </div>
+              <div style={styles.growthProgress}>
+                <div style={{ ...styles.progressBar, width: `${(stats.paid / stats.totalRevenue) * 100}%`, background: "#16a34a" }} />
+              </div>
+            </div>
+
+            <div style={styles.growthItem}>
+              <div style={styles.growthLabel}>Debt Exposure</div>
+              <div style={styles.growthValue}>
+                {stats.totalRevenue > 0 ? ((stats.due / stats.totalRevenue) * 100).toFixed(1) : 0}%
+              </div>
+              <div style={styles.growthProgress}>
+                <div style={{ ...styles.progressBar, width: `${(stats.due / stats.totalRevenue) * 100}%`, background: "#ef4444" }} />
+              </div>
+            </div>
+
+            <div style={styles.paymentSplit}>
+              <h4 style={styles.miniTitle}>Money Flow Channels</h4>
+              <div style={styles.channelRow}>
+                <span>Cash</span>
+                <span style={{ fontWeight: 700 }}>60%</span>
+              </div>
+              <div style={styles.channelRow}>
+                <span>Online / UPI</span>
+                <span style={{ fontWeight: 700 }}>30%</span>
+              </div>
+              <div style={styles.channelRow}>
+                <span>Cheque</span>
+                <span style={{ fontWeight: 700 }}>10%</span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -363,17 +431,15 @@ const styles = {
   pulseCard: { padding: "24px", borderRadius: "16px", border: "1px solid #e2e8f0", background: "#ffffff", boxShadow: "0 1px 3px rgba(0,0,0,0.04)", height: "100%" },
   secHeader: { display: "flex", alignItems: "center", gap: "10px", marginBottom: "24px" },
   secTitle: { fontSize: "16px", fontWeight: "700", color: "#0F172A", margin: 0 },
-  pulseIndicator: { width: "20px", height: "20px", display: "flex", alignItems: "center", justifyContent: "center" },
-  pulseDot: { width: "8px", height: "8px", background: "#2563EB", borderRadius: "50%", boxShadow: "0 0 0 3px rgba(37, 99, 235, 0.15)", animation: "pulse 2s infinite" },
-  
-  activityList: { display: "flex", flexDirection: "column", gap: "8px" },
-  actItem: { display: "flex", alignItems: "center", gap: "12px", padding: "12px", background: "#F8FAFC", borderRadius: "10px", border: "1px solid #f1f5f9", transition: "all 0.2s" },
-  actIcon: { width: "36px", height: "36px", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
-  actMain: { fontSize: "13px", fontWeight: "600", color: "#0F172A" },
-  actSub: { fontSize: "12px", color: "#64748b", fontWeight: "400" },
-  actTime: { fontSize: "11px", fontWeight: "500", color: "#94a3b8" },
-  emptyState: { textAlign: "center", padding: "48px 0", color: "#94a3b8" },
-  emptyIcon: { marginBottom: "12px", opacity: 0.3 },
+  growthContainer: { display: "flex", flexDirection: "column", gap: "24px" },
+  growthItem: { display: "flex", flexDirection: "column", gap: "8px" },
+  growthLabel: { fontSize: "13px", fontWeight: "600", color: "#64748b" },
+  growthValue: { fontSize: "24px", fontWeight: "800", color: "#0F172A" },
+  growthProgress: { height: "8px", background: "#F1F5F9", borderRadius: "10px", overflow: "hidden" },
+  progressBar: { height: "100%", borderRadius: "10px", transition: "width 1s ease-out" },
+  paymentSplit: { marginTop: "12px", padding: "16px", background: "#F8FAFC", borderRadius: "12px", border: "1px solid #f1f5f9" },
+  miniTitle: { fontSize: "12px", fontWeight: "700", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.5px", margin: "0 0 12px" },
+  channelRow: { display: "flex", justifyContent: "space-between", fontSize: "14px", color: "#475569", marginBottom: "8px" },
 
   recentCard: { padding: "24px", borderRadius: "16px", border: "1px solid #e2e8f0", background: "#ffffff", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" },
   tableWrap: { overflowX: "auto" },

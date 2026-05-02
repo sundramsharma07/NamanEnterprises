@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import api from "../services/api";
 
 function PrintReceipt() {
   const { order_id } = useParams();
+  const navigate = useNavigate();
 
   const [order, setOrder] = useState(null);
   const [items, setItems] = useState([]);
@@ -61,8 +62,8 @@ function PrintReceipt() {
       <div style={styles.errorContainer}>
         <h2>Receipt Not Found</h2>
         <p>The requested receipt could not be found.</p>
-        <button onClick={() => window.close()} style={styles.closeButton}>
-          Close
+        <button onClick={() => navigate("/dashboard")} style={styles.closeButton}>
+          Back to Dashboard
         </button>
       </div>
     );
@@ -254,8 +255,8 @@ function PrintReceipt() {
           <span style={styles.printIcon}>🖨️</span>
           Print Receipt
         </button>
-        <button onClick={() => window.close()} style={styles.closeButton}>
-          Close
+        <button onClick={() => navigate("/dashboard")} style={styles.closeButton}>
+          Dashboard
         </button>
       </div>
     </div>

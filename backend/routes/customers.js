@@ -5,42 +5,31 @@ const db = require("../database/db");
 console.log("Customers route loaded");
 
 // GET ALL CUSTOMERS
-router.get("/", (req, res) => {
-  const sql = "SELECT * FROM customers";
-
-  db.all(sql, [], (err, rows) => {
-    if (err) {
-      return res.status(500).json({
-        success: false,
-        message: "Database error"
-      });
-    }
-
-    res.json(rows);
-  });
+router.get("/", async (req, res) => {
+  try {
+    const sql = "SELECT * FROM customers";
+    const result = await db.query(sql);
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Database error" });
+  }
 });
 
 // SEARCH CUSTOMER BY PHONE
-router.get("/phone/:phone", (req, res) => {
-  const sql = "SELECT * FROM customers WHERE phone = ?";
-
-  db.get(sql, [req.params.phone], (err, row) => {
-    if (err) {
-      return res.status(500).json({
-        success: false,
-        message: "Database error"
-      });
-    }
+router.get("/phone/:phone", async (req, res) => {
+  try {
+    const sql = "SELECT * FROM customers WHERE phone = $1";
+    const result = await db.query(sql, [req.params.phone]);
+    const row = result.rows[0];
 
     if (!row) {
-      return res.status(404).json({
-        success: false,
-        message: "Customer not found"
-      });
+      return res.status(404).json({ success: false, message: "Customer not found" });
     }
 
     res.json(row);
-  });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Database error" });
+  }
 });
 
 // GET CUSTOMER BY ID (Full Profile including ledger, notes, etc.)
@@ -48,284 +37,94 @@ const customerController = require("../controllers/customerController");
 router.get("/:id", customerController.getCustomerById);
 
 // ADD CUSTOMER
-router.post("/", (req, res) => {
+router.post("/", async (req, res) => {
   const { name, phone, address } = req.body;
-
-  const sql = `
-    INSERT INTO customers (name, phone, address)
-    VALUES (?, ?, ?)
-  `;
-
-  db.run(sql, [name, phone, address], function (err) {
-    if (err) {
-      return res.status(400).json({
-        success: false,
-        message: "Customer already exists or invalid data"
-      });
-    }
-
-    res.json({
-      success: true,
-      message: "Customer added",
-      customerId: this.lastID
-    });
-  });
+  try {
+    const sql = "INSERT INTO customers (name, phone, address) VALUES ($1, $2, $3) RETURNING id";
+    const result = await db.query(sql, [name, phone, address]);
+    res.json({ success: true, message: "Customer added", customerId: result.rows[0].id });
+  } catch (err) {
+    res.status(400).json({ success: false, message: "Customer already exists or invalid data" });
+  }
 });
 
 // UPDATE CUSTOMER
-router.put("/:id", (req, res) => {
+router.put("/:id", async (req, res) => {
   const { name, phone, address } = req.body;
-
-  const sql = `
-    UPDATE customers
-    SET name = ?, phone = ?, address = ?
-    WHERE id = ?
-  `;
-
-  db.run(sql, [name, phone, address, req.params.id], function (err) {
-    if (err) {
-      return res.status(400).json({
-        success: false,
-        message: "Update failed"
-      });
+  try {
+    const sql = "UPDATE customers SET name = $1, phone = $2, address = $3 WHERE id = $4";
+    const result = await db.query(sql, [name, phone, address, req.params.id]);
+    
+    if (result.rowCount === 0) {
+      return res.status(404).json({ success: false, message: "Customer not found" });
     }
 
-    if (this.changes === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "Customer not found"
-      });
-    }
-
-    res.json({
-      success: true,
-      message: "Customer updated"
-    });
-  });
+    res.json({ success: true, message: "Customer updated" });
+  } catch (err) {
+    res.status(400).json({ success: false, message: "Update failed" });
+  }
 });
 
 // DELETE CUSTOMER WITH STOCK RESTORE
-router.delete("/:id", (req, res) => {
+router.delete("/:id", async (req, res) => {
   const customerId = req.params.id;
+  const client = await db.connect();
 
-  db.get(
-    "SELECT * FROM customers WHERE id = ?",
-    [customerId],
-    (customerErr, customer) => {
-      if (customerErr) {
-        return res.status(500).json({
-          success: false,
-          message: "Database error",
-          error: customerErr.message
-        });
-      }
+  try {
+    await client.query("BEGIN");
 
-      if (!customer) {
-        return res.status(404).json({
-          success: false,
-          message: "Customer not found"
-        });
-      }
+    const customerResult = await client.query("SELECT * FROM customers WHERE id = $1", [customerId]);
+    const customer = customerResult.rows[0];
 
-      db.all(
-        "SELECT order_id FROM orders WHERE customer_id = ?",
-        [customerId],
-        (ordersErr, orders) => {
-          if (ordersErr) {
-            return res.status(500).json({
-              success: false,
-              message: "Failed to fetch customer orders",
-              error: ordersErr.message
-            });
-          }
-
-          db.serialize(() => {
-            let responseSent = false;
-
-            const rollbackWithError = (message, errObj = null, statusCode = 500) => {
-              db.run("ROLLBACK", () => {
-                if (!responseSent) {
-                  responseSent = true;
-                  return res.status(statusCode).json({
-                    success: false,
-                    message,
-                    error: errObj ? errObj.message : undefined
-                  });
-                }
-              });
-            };
-
-            db.run("BEGIN TRANSACTION", (beginErr) => {
-              if (beginErr) {
-                return res.status(500).json({
-                  success: false,
-                  message: "Failed to start transaction",
-                  error: beginErr.message
-                });
-              }
-
-              const restoreStockForOrders = (orderIndex) => {
-                if (orderIndex >= orders.length) {
-                  return deleteCustomerData();
-                }
-
-                const orderId = orders[orderIndex].order_id;
-
-                db.all(
-                  "SELECT * FROM order_items WHERE order_id = ?",
-                  [orderId],
-                  (itemsErr, items) => {
-                    if (itemsErr) {
-                      return rollbackWithError("Failed to fetch order items", itemsErr);
-                    }
-
-                    const processItems = (itemIndex) => {
-                      if (itemIndex >= items.length) {
-                        return restoreStockForOrders(orderIndex + 1);
-                      }
-
-                      const item = items[itemIndex];
-
-                      db.get(
-                        "SELECT stock, name FROM products WHERE id = ?",
-                        [item.product_id],
-                        (productErr, product) => {
-                          if (productErr) {
-                            return rollbackWithError("Failed to fetch product stock", productErr);
-                          }
-
-                          if (!product) {
-                            return rollbackWithError(
-                              `Product not found for stock restore: ${item.product_id}`,
-                              null,
-                              400
-                            );
-                          }
-
-                          const oldStock = Number(product.stock || 0);
-                          const restoreQty = Number(item.quantity || 0);
-                          const newStock = oldStock + restoreQty;
-
-                          db.run(
-                            `UPDATE products SET stock = ? WHERE id = ?`,
-                            [newStock, item.product_id],
-                            function (updateErr) {
-                              if (updateErr) {
-                                return rollbackWithError("Failed to restore stock", updateErr);
-                              }
-
-                              db.run(
-                                `INSERT INTO stock_movements
-                                 (product_id, movement_type, quantity, old_stock, new_stock, note, ref_order_id)
-                                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                                [
-                                  item.product_id,
-                                  "RETURN",
-                                  restoreQty,
-                                  oldStock,
-                                  newStock,
-                                  "Stock restored due to customer deletion",
-                                  orderId
-                                ],
-                                (movementErr) => {
-                                  if (movementErr) {
-                                    return rollbackWithError(
-                                      "Failed to record stock movement",
-                                      movementErr
-                                    );
-                                  }
-
-                                  processItems(itemIndex + 1);
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
-                    };
-
-                    processItems(0);
-                  }
-                );
-              };
-
-              const deleteCustomerData = () => {
-                db.run(
-                  "DELETE FROM payments WHERE order_id IN (SELECT order_id FROM orders WHERE customer_id = ?)",
-                  [customerId],
-                  (paymentsErr) => {
-                    if (paymentsErr) {
-                      return rollbackWithError("Failed to delete payments", paymentsErr);
-                    }
-
-                    db.run(
-                      "DELETE FROM order_items WHERE order_id IN (SELECT order_id FROM orders WHERE customer_id = ?)",
-                      [customerId],
-                      (itemsDeleteErr) => {
-                        if (itemsDeleteErr) {
-                          return rollbackWithError("Failed to delete order items", itemsDeleteErr);
-                        }
-
-                        db.run(
-                          "DELETE FROM orders WHERE customer_id = ?",
-                          [customerId],
-                          (ordersDeleteErr) => {
-                            if (ordersDeleteErr) {
-                              return rollbackWithError("Failed to delete orders", ordersDeleteErr);
-                            }
-
-                            db.run(
-                              "DELETE FROM customers WHERE id = ?",
-                              [customerId],
-                              function (customerDeleteErr) {
-                                if (customerDeleteErr) {
-                                  return rollbackWithError(
-                                    "Failed to delete customer",
-                                    customerDeleteErr
-                                  );
-                                }
-
-                                if (this.changes === 0) {
-                                  return rollbackWithError(
-                                    "Customer not found during delete",
-                                    null,
-                                    404
-                                  );
-                                }
-
-                                db.run("COMMIT", (commitErr) => {
-                                  if (commitErr) {
-                                    return rollbackWithError(
-                                      "Failed to commit customer deletion",
-                                      commitErr
-                                    );
-                                  }
-
-                                  if (!responseSent) {
-                                    responseSent = true;
-                                    return res.json({
-                                      success: true,
-                                      message: "Customer deleted and stock restored successfully"
-                                    });
-                                  }
-                                });
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
-              };
-
-              restoreStockForOrders(0);
-            });
-          });
-        }
-      );
+    if (!customer) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ success: false, message: "Customer not found" });
     }
-  );
+
+    const ordersResult = await client.query("SELECT order_id FROM orders WHERE customer_id = $1", [customerId]);
+    const orders = ordersResult.rows;
+
+    for (const order of orders) {
+      const itemsResult = await client.query("SELECT * FROM order_items WHERE order_id = $1", [order.order_id]);
+      const items = itemsResult.rows;
+
+      for (const item of items) {
+        const productResult = await client.query("SELECT stock, name FROM products WHERE id = $1", [item.product_id]);
+        const product = productResult.rows[0];
+
+        if (product) {
+          const oldStock = Number(product.stock || 0);
+          const restoreQty = Number(item.quantity || 0);
+          const newStock = oldStock + restoreQty;
+
+          await client.query("UPDATE products SET stock = $1 WHERE id = $2", [newStock, item.product_id]);
+          await client.query(
+            "INSERT INTO stock_movements (product_id, movement_type, quantity, old_stock, new_stock, note, ref_order_id) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+            [item.product_id, "RETURN", restoreQty, oldStock, newStock, "Stock restored due to customer deletion", order.order_id]
+          );
+        }
+      }
+    }
+
+    // Cascade delete handles order_items and payments if configured, but let's be explicit if needed.
+    // In our schema, we have ON DELETE CASCADE for orders -> order_items, payments.
+    // And customers -> orders.
+    // So deleting customer should be enough.
+    const deleteResult = await client.query("DELETE FROM customers WHERE id = $1", [customerId]);
+    
+    if (deleteResult.rowCount === 0) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ success: false, message: "Customer not found during delete" });
+    }
+
+    await client.query("COMMIT");
+    res.json({ success: true, message: "Customer deleted and stock restored successfully" });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    res.status(500).json({ success: false, message: "Delete failed", error: err.message });
+  } finally {
+    client.release();
+  }
 });
 
 // DUE ROUTING AND CONTROLLERS
@@ -339,4 +138,4 @@ router.post("/:id/notes", notesController.validateNote, notesController.addNote)
 
 router.delete("/notes/:note_id", notesController.deleteNote);
 
-module.exports = router;
+module.exports = router;

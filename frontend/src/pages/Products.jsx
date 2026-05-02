@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
+import { useLocation } from "react-router-dom";
 import api from "../services/api";
 import { 
   Package, 
@@ -20,10 +21,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 
 function Products() {
+  const location = useLocation();
   const [products, setProducts] = useState([]);
   const [updatingId, setUpdatingId] = useState(null);
   const [stockUpdatingId, setStockUpdatingId] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
+  
+  // Initialize search from URL
+  const [searchTerm, setSearchTerm] = useState(new URLSearchParams(location.search).get("q") || "");
+  
   const [filterCategory, setFilterCategory] = useState("all");
   const [loading, setLoading] = useState(true);
 
@@ -48,6 +53,13 @@ function Products() {
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
+
+  useEffect(() => {
+    const q = new URLSearchParams(location.search).get("q");
+    if (q !== null) {
+      setSearchTerm(q);
+    }
+  }, [location.search]);
 
   const categories = useMemo(() => {
     return ["all", ...new Set(products.map(p => p.category))];
@@ -261,7 +273,7 @@ function Products() {
                     </td>
                     <td style={styles.td}>
                       <div style={styles.priceRow}>
-                        <span style={{ color: "#94a3b8", fontSize: "12px" }}>₹</span>
+                        <span style={{ color: "#2563EB", fontSize: "14px", fontWeight: "700" }}>₹</span>
                         <input 
                           type="number"
                           value={p.price}
@@ -419,16 +431,93 @@ const styles = {
   prodName: { fontWeight: "600", color: "#0F172A", fontSize: "14px" },
   prodMeta: { fontSize: "11px", color: "#94a3b8", fontWeight: "500", marginTop: "2px" },
 
-  priceRow: { display: "flex", alignItems: "center", gap: "6px", background: "#F8FAFC", padding: "6px 10px", borderRadius: "8px", width: "fit-content", border: "1px solid #e2e8f0" },
-  priceInput: { width: "60px", border: "none", background: "transparent", fontWeight: "700", color: "#0F172A", textAlign: "right", outline: "none", fontSize: "13px", fontFamily: "inherit" },
-  iconBtn: { border: "none", background: "none", cursor: "pointer", color: "#2563EB", padding: 0, display: "flex" },
+  priceRow: { 
+    display: "flex", 
+    alignItems: "center", 
+    gap: "8px", 
+    background: "#fff", 
+    padding: "8px 12px", 
+    borderRadius: "12px", 
+    width: "fit-content", 
+    border: "2px solid #f1f5f9",
+    transition: "all 0.2s ease",
+    boxShadow: "0 2px 4px rgba(0,0,0,0.02)"
+  },
+  priceInput: { 
+    width: "80px", 
+    border: "none", 
+    background: "transparent", 
+    fontWeight: "800", 
+    color: "#0F172A", 
+    textAlign: "right", 
+    outline: "none", 
+    fontSize: "16px", 
+    fontFamily: "'Inter', sans-serif",
+    letterSpacing: "-0.5px"
+  },
+  iconBtn: { 
+    border: "none", 
+    background: "rgba(37, 99, 235, 0.06)", 
+    cursor: "pointer", 
+    color: "#2563EB", 
+    padding: "6px", 
+    borderRadius: "8px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    transition: "all 0.2s ease"
+  },
 
   stockBadge: { display: "inline-flex", alignItems: "center", padding: "6px 12px", borderRadius: "8px", fontWeight: "600", fontSize: "12px" },
   
-  stockControl: { display: "flex", gap: "6px", background: "#F8FAFC", padding: "4px", borderRadius: "10px", width: "fit-content", border: "1px solid #e2e8f0" },
-  stockType: { border: "none", background: "#fff", borderRadius: "6px", padding: "6px 8px", fontSize: "10px", fontWeight: "700", outline: "none", cursor: "pointer", color: "#475569", fontFamily: "inherit" },
-  stockInput: { width: "44px", border: "none", background: "#fff", borderRadius: "6px", padding: "6px 8px", fontSize: "11px", fontWeight: "700", outline: "none", textAlign: "center", color: "#0F172A", fontFamily: "inherit" },
-  adjustBtn: { background: "#2563EB", color: "#fff", border: "none", borderRadius: "6px", padding: "6px 8px", cursor: "pointer", display: "flex" },
+  stockControl: { 
+    display: "flex", 
+    gap: "8px", 
+    background: "#fff", 
+    padding: "6px", 
+    borderRadius: "12px", 
+    width: "fit-content", 
+    border: "2px solid #f1f5f9",
+    boxShadow: "0 2px 4px rgba(0,0,0,0.02)"
+  },
+  stockType: { 
+    border: "none", 
+    background: "#F8FAFC", 
+    borderRadius: "8px", 
+    padding: "8px 10px", 
+    fontSize: "11px", 
+    fontWeight: "800", 
+    outline: "none", 
+    cursor: "pointer", 
+    color: "#2563EB", 
+    fontFamily: "'Inter', sans-serif",
+    textTransform: "uppercase"
+  },
+  stockInput: { 
+    width: "56px", 
+    border: "none", 
+    background: "#F8FAFC", 
+    borderRadius: "8px", 
+    padding: "8px", 
+    fontSize: "14px", 
+    fontWeight: "700", 
+    outline: "none", 
+    textAlign: "center", 
+    color: "#0F172A", 
+    fontFamily: "'Inter', sans-serif" 
+  },
+  adjustBtn: { 
+    background: "#2563EB", 
+    color: "#fff", 
+    border: "none", 
+    borderRadius: "8px", 
+    padding: "8px 12px", 
+    cursor: "pointer", 
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    transition: "all 0.2s ease"
+  },
 
   auditBtn: { display: "flex", alignItems: "center", gap: "6px", padding: "8px 14px", background: "#F8FAFC", border: "1px solid #e2e8f0", borderRadius: "8px", color: "#475569", fontWeight: "500", fontSize: "12px", cursor: "pointer", fontFamily: "inherit" },
 

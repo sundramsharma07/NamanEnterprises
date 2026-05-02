@@ -25,30 +25,25 @@ const products = [
 
 ];
 
-db.serialize(() => {
+async function seed() {
+  try {
+    await db.query("DELETE FROM products");
+    console.log("Old products cleared");
 
-  db.run("DELETE FROM products", (err) => {
-    if (err) {
-      console.log("Failed to clear products:", err.message);
-      return;
+    for (const p of products) {
+      await db.query(
+        "INSERT INTO products (category, name, variant, unit, price, is_active) VALUES ($1, $2, $3, $4, $5, 1)",
+        [p.category, p.name, p.variant, p.unit, p.price]
+      );
     }
 
-    console.log("Old products cleared");
-  });
-
-  const stmt = db.prepare(`
-    INSERT INTO products (category, name, variant, unit, price, is_active)
-    VALUES (?, ?, ?, ?, ?, 1)
-  `);
-
-  products.forEach((p) => {
-    stmt.run(p.category, p.name, p.variant, p.unit, p.price);
-  });
-
-  stmt.finalize(() => {
     console.log("Products inserted successfully");
     console.log("Total products:", products.length);
-    process.exit();
-  });
+    process.exit(0);
+  } catch (err) {
+    console.error("Failed to seed products:", err.message);
+    process.exit(1);
+  }
+}
 
-});
+seed();

@@ -40,7 +40,7 @@ const { getLatestBackup } = require("./services/backupService");
 
 
 // Dedicated Dashboard Pulse Route (Priority)
-app.get("/api/activity-pulse", apiAuth, (req, res) => {
+app.get("/api/activity-pulse", apiAuth, async (req, res) => {
   const sql = `
     SELECT 
       h.*, 
@@ -52,10 +52,12 @@ app.get("/api/activity-pulse", apiAuth, (req, res) => {
     ORDER BY h.created_at DESC
     LIMIT 20
   `;
-  db.all(sql, [], (err, rows) => {
-    if (err) return res.status(500).json({ success: false, error: err.message });
-    res.json(rows);
-  });
+  try {
+    const result = await db.query(sql);
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 app.use("/api/customers", apiAuth, customersRoute);

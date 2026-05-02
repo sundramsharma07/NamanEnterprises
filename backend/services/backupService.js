@@ -1,32 +1,15 @@
 const fs = require('fs');
 const path = require('path');
 
-const DB_PATH = path.join(__dirname, '../database/store.db');
 const BACKUP_DIR = path.join(__dirname, '../', process.env.BACKUP_DIR || 'database/backups');
 
 /**
- * Creates a timestamped backup of the current SQLite database
- * @returns {Promise<string>} Path to the created backup
+ * Neon PostgreSQL handles backups automatically.
+ * This local backup service is deprecated but kept for compatibility.
  */
 const createBackup = async () => {
-  return new Promise((resolve, reject) => {
-    if (!fs.existsSync(BACKUP_DIR)) {
-      fs.mkdirSync(BACKUP_DIR);
-    }
-
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const backupName = `backup-${timestamp}.db`;
-    const backupPath = path.join(BACKUP_DIR, backupName);
-
-    fs.copyFile(DB_PATH, backupPath, (err) => {
-      if (err) {
-        console.error('[BACKUP] Error creating backup:', err);
-        return reject(err);
-      }
-      console.log(`[BACKUP] Successfully created backup: ${backupName}`);
-      resolve(backupPath);
-    });
-  });
+  console.log('[BACKUP] Neon PostgreSQL handles backups automatically in the cloud. Local SQLite backup skipped.');
+  return null;
 };
 
 /**
@@ -58,7 +41,7 @@ const getLatestBackup = () => {
   if (!fs.existsSync(BACKUP_DIR)) return null;
 
   const files = fs.readdirSync(BACKUP_DIR)
-    .filter(f => f.endsWith('.db'))
+    .filter(f => f.endsWith('.db') || f.endsWith('.sql'))
     .sort((a, b) => {
       return fs.statSync(path.join(BACKUP_DIR, b)).mtimeMs - 
              fs.statSync(path.join(BACKUP_DIR, a)).mtimeMs;
@@ -72,3 +55,4 @@ module.exports = {
   pruneBackups,
   getLatestBackup
 };
+
