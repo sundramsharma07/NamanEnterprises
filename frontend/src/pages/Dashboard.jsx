@@ -258,7 +258,7 @@ function Dashboard() {
         </div>
 
         <div style={{ position: "absolute", right: "40px", bottom: "20px", zIndex: 10 }}>
-           <div style={{ padding: "8px 20px", background: "rgba(255,255,255,0.15)", borderRadius: "100px", color: "#fff", fontSize: "13px", fontWeight: "700", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.2)" }}>Authorized Portal</div>
+           <div style={{ padding: "8px 20px", background: "rgba(0,0,0,0.5)", borderRadius: "100px", color: "#fff", fontSize: "13px", fontWeight: "700", border: "1px solid rgba(255,255,255,0.2)" }}>Authorized Portal</div>
         </div>
       </div>
 

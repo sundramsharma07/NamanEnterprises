@@ -48,6 +48,22 @@ function PrintReceipt() {
     });
   };
 
+  const sendWhatsAppReceipt = () => {
+    if (!order.customer_phone) {
+      alert("Customer phone number is not available for this order.");
+      return;
+    }
+    const customerName = order.customer_name || 'Customer';
+    const date = new Date(order.created_at).toLocaleDateString('en-IN');
+    const message = `नमस्ते ${customerName} 🙏,\n\nनमन एंटरप्राइजेज (Naman Enterprises) 🏗️ से खरीदारी करने के लिए आपका बहुत-बहुत धन्यवाद! ✨\n\nआपके ऑर्डर का विवरण नीचे दिया गया है:\n🆔 *ऑर्डर आईडी:* #${order.order_id}\n📅 *दिनांक:* ${date}\n💰 *कुल बिल:* ${formatCurrency(order.total_amount)}\n✅ *जमा राशि:* ${formatCurrency(order.paid_amount)}\n\nहम आशा करते हैं कि आपको हमारी सेवाएँ पसंद आईं। 🌟\nआपका दिन शुभ हो! 😊`;
+    
+    const encodedMessage = encodeURIComponent(message);
+    let cleanPhone = order.customer_phone.replace(/\D/g, '');
+    if (cleanPhone.length === 10) cleanPhone = '91' + cleanPhone;
+    const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
   if (loading) {
     return (
       <div style={styles.loadingContainer}>
@@ -102,6 +118,21 @@ function PrintReceipt() {
           position: relative;
           overflow: hidden;
         }
+
+        @media (max-width: 768px) {
+          #receipt { padding: 20px !important; }
+          .receipt-header { flex-direction: column !important; align-items: flex-start !important; }
+          .header-right { text-align: left !important; margin-top: 20px !important; }
+          .key-row { justify-content: flex-start !important; }
+          .customer-grid { flex-direction: column !important; gap: 10px !important; }
+          .payment-box { text-align: left !important; }
+          .summary-container { flex-direction: column !important; gap: 20px !important; }
+          .summary-right { width: 100% !important; box-sizing: border-box; }
+          .table-wrapper { width: 100%; overflow-x: auto; }
+          .footer-section { flex-direction: column !important; align-items: flex-start !important; gap: 30px !important; }
+          .gratitude { text-align: left !important; }
+          .print-section { flex-wrap: wrap; justify-content: center; }
+        }
       `}</style>
 
       {/* Receipt Content */}
@@ -112,7 +143,7 @@ function PrintReceipt() {
         </div>
 
         {/* Header Section */}
-        <div style={styles.header}>
+        <div className="receipt-header" style={styles.header}>
           <div style={styles.headerLeft}>
             <div style={styles.logoWrapper}>
               <img src="/logo.png" style={styles.logoImage} alt="Naman Enterprises Logo" />
@@ -129,14 +160,14 @@ function PrintReceipt() {
               )}
             </div>
           </div>
-          <div style={styles.headerRight}>
+          <div className="header-right" style={styles.headerRight}>
             <div style={styles.receiptBadge}>SALES RECEIPT</div>
             <div style={styles.orderKeyInfo}>
-              <div style={styles.keyRow}>
+              <div className="key-row" style={styles.keyRow}>
                 <span style={styles.keyLabel}>Invoice No :</span>
                 <span style={styles.keyValue}>#{order.order_id}</span>
               </div>
-              <div style={styles.keyRow}>
+              <div className="key-row" style={styles.keyRow}>
                 <span style={styles.keyLabel}>Date :</span>
                 <span style={styles.keyValue}>{formatDate(order.created_at)}</span>
               </div>
@@ -148,14 +179,14 @@ function PrintReceipt() {
 
         {/* Customer Info */}
         <div style={styles.customerSection}>
-          <div style={styles.customerInfoGrid}>
+          <div className="customer-grid" style={styles.customerInfoGrid}>
             <div style={styles.customerMain}>
               <div style={styles.sectionTitle}>BILL TO:</div>
               <p style={styles.customerName}>{order.customer_name || 'Walk-in Customer'}</p>
               {order.customer_phone && <p style={styles.customerContact}>📞 {order.customer_phone}</p>}
               {order.customer_address && <p style={styles.customerAddressSimple}>{order.customer_address}</p>}
             </div>
-            <div style={styles.paymentMethodBox}>
+            <div className="payment-box" style={styles.paymentMethodBox}>
               <div style={styles.sectionTitle}>PAYMENT METHOD:</div>
               <p style={styles.paymentMethodValue}>{order.payment_method || 'Cash'}</p>
             </div>
@@ -163,42 +194,44 @@ function PrintReceipt() {
         </div>
 
         {/* Items Table */}
-        <table style={styles.table}>
-          <thead>
-            <tr>
-              <th className="table-header" style={{...styles.tableHeader, width: '40px'}}>#</th>
-              <th className="table-header" style={styles.tableHeader}>Item Description</th>
-              <th className="table-header" style={{...styles.tableHeader, textAlign: 'center'}}>Qty</th>
-              <th className="table-header" style={{...styles.tableHeader, textAlign: 'center'}}>Unit</th>
-              <th className="table-header" style={{...styles.tableHeader, textAlign: 'right'}}>Rate</th>
-              <th className="table-header" style={{...styles.tableHeader, textAlign: 'right'}}>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item, index) => (
-              <tr key={item.id} style={styles.tableRow}>
-                <td style={styles.tableCell}>{index + 1}</td>
-                <td style={styles.tableCell}>
-                  <div>
-                    <span style={styles.productName}>{item.product_name}</span>
-                    {item.variant && (
-                      <span style={styles.productVariant}> ({item.variant})</span>
-                    )}
-                  </div>
-                </td>
-                <td style={{...styles.tableCell, textAlign: 'center'}}>{item.quantity}</td>
-                <td style={{...styles.tableCell, textAlign: 'center'}}>{item.unit}</td>
-                <td style={{...styles.tableCell, textAlign: 'right'}}>{formatCurrency(item.price)}</td>
-                <td style={{...styles.tableCell, textAlign: 'right', fontWeight: '600'}}>
-                  {formatCurrency(item.line_total)}
-                </td>
+        <div className="table-wrapper">
+          <table style={styles.table}>
+            <thead>
+              <tr>
+                <th className="table-header" style={{...styles.tableHeader, width: '40px'}}>#</th>
+                <th className="table-header" style={styles.tableHeader}>Item Description</th>
+                <th className="table-header" style={{...styles.tableHeader, textAlign: 'center'}}>Qty</th>
+                <th className="table-header" style={{...styles.tableHeader, textAlign: 'center'}}>Unit</th>
+                <th className="table-header" style={{...styles.tableHeader, textAlign: 'right'}}>Rate</th>
+                <th className="table-header" style={{...styles.tableHeader, textAlign: 'right'}}>Total</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {items.map((item, index) => (
+                <tr key={item.id} style={styles.tableRow}>
+                  <td style={styles.tableCell}>{index + 1}</td>
+                  <td style={styles.tableCell}>
+                    <div>
+                      <span style={styles.productName}>{item.product_name}</span>
+                      {item.variant && (
+                        <span style={styles.productVariant}> ({item.variant})</span>
+                      )}
+                    </div>
+                  </td>
+                  <td style={{...styles.tableCell, textAlign: 'center'}}>{item.quantity}</td>
+                  <td style={{...styles.tableCell, textAlign: 'center'}}>{item.unit}</td>
+                  <td style={{...styles.tableCell, textAlign: 'right'}}>{formatCurrency(item.price)}</td>
+                  <td style={{...styles.tableCell, textAlign: 'right', fontWeight: '600'}}>
+                    {formatCurrency(item.line_total)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
         {/* Totals Section */}
-        <div style={styles.summaryContainer}>
+        <div className="summary-container" style={styles.summaryContainer}>
           <div style={styles.summaryLeft}>
             <div style={styles.paymentStatusBadge}>
               <span style={styles.statusLabel}>Payment Status:</span>
@@ -239,7 +272,7 @@ function PrintReceipt() {
         </div>
 
         {/* Footer */}
-        <div style={styles.footer}>
+        <div className="footer-section" style={styles.footer}>
           <div style={styles.signatureSection}>
             <div style={styles.signatureBox}>
               <div style={styles.signatureLine} />
@@ -247,18 +280,48 @@ function PrintReceipt() {
             </div>
           </div>
           
-          <div style={styles.gratitudeSection}>
+          <div className="gratitude" style={styles.gratitudeSection}>
             <p style={styles.thankYou}>Thank you for your business!</p>
           </div>
         </div>
       </div>
 
       {/* Control Buttons */}
-      <div style={styles.printSection} className="no-print">
-        <button onClick={() => window.print()} style={styles.printButton}>
+      <div className="print-section no-print" style={styles.printSection}>
+        <button 
+          onClick={() => {
+            setTimeout(() => window.print(), 200);
+          }} 
+          style={styles.printButton}
+        >
           <span style={styles.printIcon}>🖨️</span>
-          Print Receipt
+          Print
         </button>
+
+        <button 
+          onClick={sendWhatsAppReceipt} 
+          style={{ ...styles.printButton, background: '#25D366' }}
+        >
+          <span>💬</span>
+          WhatsApp
+        </button>
+        
+        {navigator.share && (
+          <button 
+            onClick={() => {
+              navigator.share({
+                title: `Invoice #${order.order_id}`,
+                text: `Here is your invoice from Naman Enterprises. Total: ${formatCurrency(order.total_amount)}`,
+                url: window.location.href,
+              }).catch(console.error);
+            }} 
+            style={{ ...styles.printButton, background: '#10b981' }}
+          >
+            <span>🔗</span>
+            Share
+          </button>
+        )}
+
         <button onClick={() => navigate("/dashboard")} style={styles.closeButton}>
           Dashboard
         </button>

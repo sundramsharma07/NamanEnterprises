@@ -356,8 +356,7 @@ const styles = {
   drawerBackdrop: {
     position: "fixed",
     inset: 0,
-    background: "rgba(15, 23, 42, 0.3)",
-    backdropFilter: "blur(4px)",
+    background: "rgba(15, 23, 42, 0.5)",
     zIndex: 1001
   },
   drawer: {

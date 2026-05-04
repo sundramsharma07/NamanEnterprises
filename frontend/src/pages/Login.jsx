@@ -156,7 +156,7 @@ function Login() {
             margin-top: 10px !important;
             margin-bottom: 40px !important;
           }
-          .hero-text, .quote-wrapper {
+          .hero-text, .quote-wrapper, .ring-bg {
             display: none !important;
           }
           .form-section-login {
@@ -173,9 +173,9 @@ function Login() {
       `}</style>
 
       {/* Decorative Background Animations */}
-      <div style={styles.ring1}></div>
-      <div style={styles.ring2}></div>
-      <div style={styles.ring3}></div>
+      <div className="ring-bg" style={styles.ring1}></div>
+      <div className="ring-bg" style={styles.ring2}></div>
+      <div className="ring-bg" style={styles.ring3}></div>
 
       <div className="main-container-login" style={styles.mainContainer}>
         {/* Left Side: Brand & Visuals */}
@@ -283,7 +283,8 @@ const styles = {
     left: "-150px",
     animation: "floatAnimation 12s ease-in-out infinite",
     zIndex: 0,
-    pointerEvents: "none"
+    pointerEvents: "none",
+    willChange: "transform"
   },
   ring2: {
     position: "absolute",
@@ -295,7 +296,8 @@ const styles = {
     right: "-200px",
     animation: "floatAnimation 18s ease-in-out infinite reverse",
     zIndex: 0,
-    pointerEvents: "none"
+    pointerEvents: "none",
+    willChange: "transform"
   },
   ring3: {
     position: "absolute",
@@ -307,7 +309,8 @@ const styles = {
     right: "20%",
     animation: "pulseGlow 8s ease-in-out infinite",
     zIndex: 0,
-    pointerEvents: "none"
+    pointerEvents: "none",
+    willChange: "transform, opacity"
   },
   mainContainer: {
     width: "100%",

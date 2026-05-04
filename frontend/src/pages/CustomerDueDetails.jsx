@@ -397,9 +397,11 @@ export default function CustomerDueDetails() {
       <style>{`
         .mb-8 { margin-bottom: 32px; }
         .cdd-main-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 24px; }
+        .cdd-main-grid > div { min-width: 0; width: 100%; } /* Prevent Grid Blowout */
         .cdd-profile-banner { display: flex; align-items: center; gap: 20px; padding: 24px; margin-bottom: 32px; border: 1px solid #e2e8f0; border-radius: 16px; background: #fff; }
         .cdd-stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 32px; }
         .cdd-modal { background: #fff; width: 420px; padding: 32px; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.2); }
+        
         @media (max-width: 768px) {
           .cdd-profile-banner { flex-direction: column; text-align: center; align-items: center; }
           .cdd-profile-banner .reliability-panel { padding-left: 0 !important; border-left: none !important; border-top: 1px solid #f1f5f9 !important; padding-top: 16px !important; width: 100% !important; min-width: unset !important; }
@@ -410,16 +412,21 @@ export default function CustomerDueDetails() {
           .cdd-order-actions button { flex: 1; min-width: 100px; }
           .cdd-history-scroll { max-height: 500px !important; }
         }
+        
         .cdd-history-scroll {
           max-height: 800px;
           overflow-y: auto;
+          overflow-x: auto;
           padding-right: 8px;
+          width: 100%;
+          -webkit-overflow-scrolling: touch;
         }
         .cdd-history-scroll::-webkit-scrollbar {
           width: 4px;
+          height: 4px;
         }
         .cdd-history-scroll::-webkit-scrollbar-thumb {
-          background: #e2e8f0;
+          background: #cbd5e1;
           border-radius: 10px;
         }
       `}</style>
@@ -498,7 +505,7 @@ const styles = {
   tableWrap: { width: "100%", overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '10px' },
 
   emptyState: { textAlign: "center", padding: "48px 32px", color: "#94a3b8" },
-  modalBackdrop: { position: "fixed", inset: 0, background: "rgba(15, 23, 42, 0.4)", backdropFilter: "blur(4px)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" },
+  modalBackdrop: { position: "fixed", inset: 0, background: "rgba(15, 23, 42, 0.6)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" },
   modal: { background: "#fff", width: "420px", padding: "32px", borderRadius: "20px", boxShadow: "0 25px 50px -12px rgba(0,0,0,0.2)" },
   modalTitle: { fontSize: "20px", fontWeight: "700", margin: "0 0 6px", color: "#0F172A" },
   modalSub: { color: "#64748b", margin: "0 0 24px", fontSize: "13px" },

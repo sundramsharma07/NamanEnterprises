@@ -369,11 +369,8 @@ const styles = {
     fontSize: "clamp(12px, 2.5vw, 14px)",
     fontWeight: "500",
     borderRadius: "50px",
-
     border: "1px solid rgba(255,255,255,0.1)",
-    background: "rgba(0, 0, 0, 0.5)",
-    backdropFilter: "blur(12px)",
-    color: "#fff",
+    background: "rgba(15, 23, 42, 0.6)",
     cursor: "pointer",
     display: "flex",
     alignItems: "center",

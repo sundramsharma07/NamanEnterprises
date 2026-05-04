@@ -557,7 +557,7 @@ const styles = {
 
   auditBtn: { display: "flex", alignItems: "center", gap: "6px", padding: "8px 14px", background: "#F8FAFC", border: "1px solid #e2e8f0", borderRadius: "8px", color: "#475569", fontWeight: "500", fontSize: "12px", cursor: "pointer", fontFamily: "inherit" },
 
-  overlay: { position: "fixed", inset: 0, background: "rgba(15, 23, 42, 0.15)", backdropFilter: "blur(4px)", zIndex: 100, display: "flex", justifyContent: "flex-end" },
+  overlay: { position: "fixed", inset: 0, background: "rgba(15, 23, 42, 0.4)", zIndex: 100, display: "flex", justifyContent: "flex-end" },
   drawer: { width: "420px", height: "100%", background: "#fff", padding: "32px", boxShadow: "-10px 0 40px rgba(0,0,0,0.08)", display: "flex", flexDirection: "column", borderLeft: "1px solid #e2e8f0" },
   drawerHeader: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "32px" },
   drawerTitle: { fontSize: "20px", fontWeight: "700", color: "#0F172A", margin: "0 0 4px" },
