@@ -10,7 +10,10 @@ import {
   Banknote,
   Menu,
   X,
-  Building2
+  Building2,
+  Bell,
+  Tractor,
+  AlignJustify
 } from "lucide-react";
 
 const NAV_LINKS = [
@@ -22,10 +25,52 @@ const NAV_LINKS = [
   { path: "/due-customers", label: "Due Section", icon: Banknote }
 ];
 
-function Navbar() {
+import { useUser, useClerk, UserButton } from "@clerk/react";
+import api from "../services/api";
+
+function Navbar({ className }) {
   const location = useLocation();
+  const { user } = useUser();
+  const { signOut } = useClerk();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [showNotif, setShowNotif] = useState(false);
+
+  useEffect(() => {
+    const fetchAlerts = async () => {
+      try {
+        const res = await api.get("/orders/due/customers");
+        const alerts = (res.data.customers || [])
+          .filter(c => Number(c.total_due) > 5000)
+          .map(c => ({
+            id: c.id,
+            title: `Credit Warning: ${c.name}`,
+            msg: `High outstanding balance (${formatCurrency(c.total_due)}). Avoid further credit.`,
+          }));
+        setNotifications(alerts);
+      } catch (err) {
+        console.error("Alerts fetch error:", err);
+      }
+    };
+    if (user) fetchAlerts();
+  }, [user]);
+
+  const formatCurrency = (num) => {
+    return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(num || 0);
+  };
   const [hoveredIndex, setHoveredIndex] = useState(null);
+  
+  const [logoIconIdx, setLogoIconIdx] = useState(0);
+  const [logoHovered, setLogoHovered] = useState(false);
+  // Using native OS emojis for building, bricks/cement, construction/rods, tractor
+  const logoIcons = ["🏢", "🧱", "🏗️", "🚜"];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLogoIconIdx((prev) => (prev + 1) % logoIcons.length);
+    }, 2000); // Slower, automatic flip every 2 seconds
+    return () => clearInterval(interval);
+  }, [logoIcons.length]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -39,6 +84,7 @@ function Navbar() {
 
   return (
     <nav 
+      className={className}
       style={{
         position: "sticky",
         top: 0,
@@ -58,48 +104,74 @@ function Navbar() {
       <style>{css}</style>
       
       {/* Brand Logo */}
-      <Link to="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: "14px" }}>
-        <div
-          style={{
-            width: "42px",
-            height: "42px",
-            background: "linear-gradient(135deg, #0F172A 0%, #334155 100%)",
-            borderRadius: "12px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "#F59E0B", // Amber gold
-            boxShadow: "0 4px 12px rgba(15, 23, 42, 0.15)",
-            border: "1px solid rgba(245, 158, 11, 0.2)",
-          }}
+      <Link 
+        to="/" 
+        style={{ textDecoration: "none", minWidth: "fit-content", display: "block" }}
+        onMouseEnter={() => setLogoHovered(true)}
+        onMouseLeave={() => setLogoHovered(false)}
+      >
+        <motion.div 
+          style={{ display: "flex", alignItems: "center", gap: "12px" }}
         >
-          <Building2 size={24} strokeWidth={2} />
-        </div>
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          <span 
-            style={{ 
-              fontSize: "22px", 
-              fontWeight: "900", 
-              color: "#0F172A", 
-              letterSpacing: "-0.8px", 
-              lineHeight: "0.9",
-              fontFamily: "'Outfit', sans-serif" 
+          <motion.div
+            animate={{ scale: logoHovered ? 1.05 : 1 }}
+            transition={{ duration: 0.3 }}
+            style={{
+              width: "44px",
+              height: "44px",
+              background: "#FFF7ED",
+              borderRadius: "14px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              boxShadow: "0 2px 8px rgba(249, 115, 22, 0.15)",
+              flexShrink: 0,
+              border: "1px solid #FFEDD5"
             }}
           >
-            NAMAN
-          </span>
-          <span 
-            style={{ 
-              fontSize: "12px", 
-              fontWeight: "800", 
-              color: "#D97706", // Slightly darker amber for better contrast on white
-              letterSpacing: "2px", 
-              textTransform: "uppercase" 
-            }}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={logoIconIdx}
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -15 }}
+                transition={{ duration: 0.4 }}
+              >
+                <span style={{ fontSize: "24px", lineHeight: 1 }}>{logoIcons[logoIconIdx]}</span>
+              </motion.div>
+            </AnimatePresence>
+          </motion.div>
+          
+          <motion.div 
+            animate={{ x: logoHovered ? 4 : 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+            style={{ display: "flex", flexDirection: "column", lineHeight: "1.1" }}
           >
-            Enterprises
-          </span>
-        </div>
+            <span 
+              style={{ 
+                fontSize: "22px", 
+                fontWeight: "900", 
+                color: "#0F172A", 
+                letterSpacing: "-0.8px", 
+                fontFamily: "'Outfit', sans-serif" 
+              }}
+            >
+              NAMAN
+            </span>
+            <span 
+              style={{ 
+                fontSize: "11px", 
+                fontWeight: "800", 
+                color: "#F97316",
+                letterSpacing: "1.5px", 
+                textTransform: "uppercase",
+                fontFamily: "'Outfit', sans-serif"
+              }}
+            >
+              Enterprises
+            </span>
+          </motion.div>
+        </motion.div>
       </Link>
 
       {/* Desktop Links */}
@@ -116,17 +188,17 @@ function Navbar() {
               onMouseLeave={() => setHoveredIndex(null)}
               style={{
                 textDecoration: "none",
-                color: isActive ? "#2563EB" : "#64748b",
+                color: isActive ? "#F97316" : "#64748b",
                 padding: "8px 14px",
                 fontSize: "13px",
-                fontWeight: isActive ? "600" : "500",
+                fontWeight: isActive ? "700" : "500",
                 display: "flex",
                 alignItems: "center",
                 gap: "6px",
                 position: "relative",
                 transition: "all 0.2s ease",
                 borderRadius: "8px",
-                background: isActive ? "rgba(37, 99, 235, 0.06)" : "transparent",
+                background: isActive ? "rgba(249, 115, 22, 0.08)" : "transparent",
               }}
             >
               <Icon size={16} strokeWidth={isActive ? 2.5 : 2} />
@@ -149,6 +221,47 @@ function Navbar() {
             </Link>
           );
         })}
+      </div>
+
+      {/* Mobile Actions (Profile + Alert) */}
+      <div className="mobile-actions" style={styles.mobileActions}>
+        <div style={{ position: "relative" }}>
+          <button 
+            style={{ ...styles.iconBtn, color: notifications.length > 0 ? "#ef4444" : "#64748b" }}
+            onClick={() => setShowNotif(!showNotif)}
+          >
+            <Bell size={20} className={notifications.length > 0 ? "pulse-notif" : ""} />
+            {notifications.length > 0 && <div style={styles.alertDot} />}
+          </button>
+
+          <AnimatePresence>
+            {showNotif && (
+              <motion.div 
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                style={styles.notifDropdown}
+              >
+                <h4 style={{ margin: "0 0 12px", fontSize: "14px", fontWeight: "700", color: "#0F172A" }}>Notifications</h4>
+                {notifications.length > 0 ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    {notifications.map(n => (
+                      <div key={n.id} style={{ padding: "10px", background: "#FEF2F2", borderRadius: "8px", border: "1px solid #FEE2E2" }}>
+                        <div style={{ fontSize: "12px", fontWeight: "700", color: "#B91C1C", marginBottom: "2px" }}>{n.title}</div>
+                        <div style={{ fontSize: "11px", color: "#991B1B" }}>{n.msg}</div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ textAlign: "center", padding: "20px", color: "#94a3b8", fontSize: "12px" }}>No urgent alerts</div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+        <div style={styles.profileWrapper}>
+          <UserButton afterSignOutUrl="/" />
+        </div>
       </div>
 
       {/* Mobile Menu Button */}
@@ -202,8 +315,8 @@ function Navbar() {
                           gap: "14px",
                           padding: "14px 16px",
                           borderRadius: "10px",
-                          background: isActive ? "rgba(37, 99, 235, 0.06)" : "transparent",
-                          color: isActive ? "#2563EB" : "#475569",
+                          background: isActive ? "rgba(249, 115, 22, 0.08)" : "transparent",
+                          color: isActive ? "#F97316" : "#475569",
                           fontWeight: isActive ? "600" : "500",
                           fontSize: "15px",
                           transition: "all 0.2s ease"
@@ -256,6 +369,51 @@ const styles = {
     boxShadow: "-10px 0 40px rgba(0,0,0,0.08)",
     zIndex: 1002,
     borderLeft: "1px solid #e2e8f0",
+  },
+  mobileActions: {
+    display: "none",
+    alignItems: "center",
+    gap: "12px",
+    marginLeft: "auto",
+    marginRight: "8px"
+  },
+  iconBtn: {
+    background: "none",
+    border: "none",
+    color: "#64748b",
+    cursor: "pointer",
+    padding: "8px",
+    position: "relative",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  alertDot: {
+    position: "absolute",
+    top: "8px",
+    right: "8px",
+    width: "8px",
+    height: "8px",
+    background: "#ef4444",
+    borderRadius: "50%",
+    border: "2px solid #fff"
+  },
+  profileWrapper: {
+    display: "flex",
+    alignItems: "center"
+  },
+  notifDropdown: {
+    position: "absolute",
+    top: "100%",
+    right: "-40px",
+    width: "280px",
+    background: "#fff",
+    border: "1px solid #e2e8f0",
+    borderRadius: "12px",
+    boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
+    padding: "16px",
+    marginTop: "12px",
+    zIndex: 1003,
   }
 };
 
@@ -264,11 +422,11 @@ const css = `
   .menu-btn { display: none !important; }
   .desktop-nav { display: flex !important; }
 }
-@media (max-width: 1023px) {
+@media (max-width: 1024px) {
   .menu-btn { display: flex !important; }
+  .mobile-actions { display: flex !important; }
   .desktop-nav { display: none !important; }
   nav { padding: 0 16px !important; }
-  .nav-brand-text span:last-child { display: none; }
 }
 `;
 

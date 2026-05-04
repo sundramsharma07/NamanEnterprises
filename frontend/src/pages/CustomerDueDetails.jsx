@@ -208,23 +208,28 @@ export default function CustomerDueDetails() {
         {/* Pending Orders Column */}
         <div style={styles.col}>
           <div style={styles.secHeader}>
-            <AlertCircle size={20} color="var(--danger)" />
-            <h3 style={styles.secTitle}>Pending Orders ({orders.length})</h3>
+            <div style={{ ...styles.secIcon, background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>
+              <AlertCircle size={18} />
+            </div>
+            <div>
+              <h3 style={styles.secTitle}>Active Dues</h3>
+              <p style={styles.secSub}>Orders with pending balances ({orders.length})</p>
+            </div>
           </div>
           
           <div style={styles.orderList}>
             {orders.length === 0 ? (
               <div style={styles.emptyState}>
                 <CheckCircle size={48} color="var(--success)" />
-                <h4>All Clear!</h4>
-                <p>No pending balances for this customer.</p>
+                <h4>No Outstanding Dues</h4>
+                <p>This customer has paid all their bills.</p>
               </div>
             ) : (
               orders.map(order => (
                 <Card key={order.order_id} style={styles.orderCard}>
                   <div style={styles.orderHead}>
                     <div>
-                      <div style={styles.orderId}>{order.order_id}</div>
+                      <div style={styles.orderId}>Order #{order.order_id}</div>
                       <div style={styles.orderDate}>
                         <Clock size={12} /> {new Date(order.created_at).toLocaleDateString()}
                       </div>
@@ -236,11 +241,11 @@ export default function CustomerDueDetails() {
                   
                   <div style={styles.orderDetails}>
                     <div style={styles.detailRow}>
-                      <span>Due at Purchase</span>
+                      <span>Original Amount</span>
                       <span style={{ fontWeight: 700 }}>{formatCurrency(order.total_amount)}</span>
                     </div>
                     <div style={styles.detailRow}>
-                      <span>Amount Deposited</span>
+                      <span>Total Deposited</span>
                       <span style={{ color: "#10b981", fontWeight: 700 }}>{formatCurrency(order.paid_amount)}</span>
                     </div>
                   </div>
@@ -251,13 +256,10 @@ export default function CustomerDueDetails() {
                       onClick={() => setExpandedOrderId(expandedOrderId === order.order_id ? null : order.order_id)}
                     >
                       {expandedOrderId === order.order_id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                      {expandedOrderId === order.order_id ? "Hide Items" : "View Items"}
+                      {expandedOrderId === order.order_id ? "Hide Details" : "View Items"}
                     </button>
                     <button style={styles.payBtn} onClick={() => openPaymentModal(order)}>
-                      <CreditCard size={16} /> Pay
-                    </button>
-                    <button style={styles.waOrderBtn} onClick={() => sendWhatsAppOrderReminder(order)}>
-                      <MessageCircle size={16} /> Remind
+                      <CreditCard size={16} /> Add Payment
                     </button>
                   </div>
 
@@ -273,8 +275,8 @@ export default function CustomerDueDetails() {
                           <tbody>
                             {order.items?.map((item, idx) => (
                               <tr key={idx}>
-                                <td>{item.product_name} <small>{item.variant}</small></td>
-                                <td style={{ textAlign: 'right' }}>{item.quantity} × {formatCurrency(item.price)}</td>
+                                <td style={{ padding: '4px 0' }}>{item.product_name} <small style={{ color: '#94a3b8' }}>({item.variant})</small></td>
+                                <td style={{ textAlign: 'right', fontWeight: '600' }}>{item.quantity} × {formatCurrency(item.price)}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -291,42 +293,57 @@ export default function CustomerDueDetails() {
         {/* Payment History Column */}
         <div style={styles.col}>
           <div style={styles.secHeader}>
-            <History size={20} color="var(--primary)" />
-            <h3 style={styles.secTitle}>Payment & Activity History</h3>
+            <div style={{ ...styles.secIcon, background: 'rgba(37, 99, 235, 0.1)', color: '#2563EB' }}>
+              <History size={18} />
+            </div>
+            <div>
+              <h3 style={styles.secTitle}>Financial Ledger</h3>
+              <p style={styles.secSub}>Timeline of payments & credit updates</p>
+            </div>
           </div>
 
-          <div style={styles.historyTimeline}>
+          <div className="cdd-history-scroll">
             {dueHistory.length === 0 ? (
               <p style={{ textAlign: "center", color: "var(--text-light)", padding: "40px" }}>No history found.</p>
             ) : (
-              dueHistory.map((entry, idx) => (
-                <div key={entry.id} style={styles.timelineItem}>
-                  <div style={{ ...styles.timelineDot, background: entry.type === 'GIVEN_DUE' ? 'var(--danger)' : 'var(--success)' }} />
-                  <div style={styles.timelineContent}>
-                    <div style={styles.timeLineHeader}>
-                      <span style={styles.entryDate}>{new Date(entry.created_at).toLocaleDateString()}</span>
-                      <span style={{ 
-                        ...styles.typeBadge, 
-                        background: entry.type === 'GIVEN_DUE' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(22, 163, 74, 0.1)',
-                        color: entry.type === 'GIVEN_DUE' ? 'var(--danger)' : 'var(--success)'
-                      }}>
-                        {entry.type === 'GIVEN_DUE' ? 'Due Added' : 'Payment Received'}
-                      </span>
-                    </div>
-                    <div style={styles.entryAmount}>
-                      {entry.type === 'GIVEN_DUE' ? '+' : '-'} {formatCurrency(entry.amount)}
-                    </div>
-                    {entry.order_total && entry.type === 'GIVEN_DUE' && (
-                      <div style={styles.orderContext}>
-                        <span>Total: {formatCurrency(entry.order_total)}</span>
-                        <span style={{ color: "var(--success)" }}>Paid: {formatCurrency(entry.order_initial_paid)}</span>
-                      </div>
-                    )}
-                    <div style={styles.entryReason}>{entry.reason}</div>
-                    <div style={styles.entryBalance}>New Balance: {formatCurrency(entry.balance_after)}</div>
-                  </div>
-                </div>
-              ))
+              <div style={styles.tableWrap}>
+                <table style={styles.ledgerTable}>
+                  <thead>
+                    <tr>
+                      <th style={styles.lTh}>Date</th>
+                      <th style={styles.lTh}>Type</th>
+                      <th style={styles.lTh}>Amount</th>
+                      <th style={{ ...styles.lTh, textAlign: 'right' }}>Balance</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dueHistory.map((entry) => (
+                      <tr key={entry.id} style={styles.lTr}>
+                        <td style={styles.lTd}>
+                          <div style={{ fontSize: '11px', color: '#94a3b8' }}>{new Date(entry.created_at).toLocaleDateString()}</div>
+                        </td>
+                        <td style={styles.lTd}>
+                          <span style={{ 
+                            ...styles.typeBadge, 
+                            background: entry.type === 'GIVEN_DUE' ? 'rgba(239, 68, 68, 0.08)' : 'rgba(22, 163, 74, 0.08)',
+                            color: entry.type === 'GIVEN_DUE' ? '#ef4444' : '#16a34a'
+                          }}>
+                            {entry.type === 'GIVEN_DUE' ? 'Due' : 'Pay'}
+                          </span>
+                        </td>
+                        <td style={styles.lTd}>
+                          <div style={{ fontWeight: '700', color: entry.type === 'GIVEN_DUE' ? '#ef4444' : '#16a34a' }}>
+                            {entry.type === 'GIVEN_DUE' ? '+' : '-'} {formatCurrency(entry.amount)}
+                          </div>
+                        </td>
+                        <td style={{ ...styles.lTd, textAlign: 'right' }}>
+                          <div style={{ fontWeight: '800', color: '#0F172A' }}>{formatCurrency(entry.balance_after)}</div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         </div>
@@ -391,6 +408,19 @@ export default function CustomerDueDetails() {
           .cdd-modal { width: 92vw !important; padding: 24px !important; border-radius: 16px !important; }
           .cdd-order-actions { flex-wrap: wrap; }
           .cdd-order-actions button { flex: 1; min-width: 100px; }
+          .cdd-history-scroll { max-height: 500px !important; }
+        }
+        .cdd-history-scroll {
+          max-height: 800px;
+          overflow-y: auto;
+          padding-right: 8px;
+        }
+        .cdd-history-scroll::-webkit-scrollbar {
+          width: 4px;
+        }
+        .cdd-history-scroll::-webkit-scrollbar-thumb {
+          background: #e2e8f0;
+          border-radius: 10px;
         }
       `}</style>
     </motion.div>
@@ -429,8 +459,10 @@ const styles = {
   sumVal: { fontSize: "28px", fontWeight: "800", color: "#ef4444" },
 
   mainGrid: { display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: "24px" },
-  secHeader: { display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px" },
+  secHeader: { display: "flex", alignItems: "center", gap: "14px", marginBottom: "24px" },
+  secIcon: { width: "36px", height: "36px", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center" },
   secTitle: { fontSize: "16px", fontWeight: "700", color: "#0F172A", margin: 0 },
+  secSub: { fontSize: "12px", color: "#64748b", margin: "2px 0 0" },
 
   orderList: { display: "flex", flexDirection: "column", gap: "16px" },
   orderCard: { padding: "20px", border: "1px solid #e2e8f0", borderRadius: "14px", background: "#fff" },
@@ -442,7 +474,7 @@ const styles = {
   detailRow: { display: "flex", justifyContent: "space-between", fontSize: "13px", color: "#64748b", marginBottom: "6px" },
   orderActions: { display: "flex", gap: "10px" },
   expandBtn: { flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", padding: "10px", background: "#fff", border: "1px solid #e2e8f0", borderRadius: "8px", cursor: "pointer", fontSize: "12px", fontWeight: "500", color: "#64748b", fontFamily: "inherit" },
-  payBtn: { flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", padding: "10px", background: "#2563EB", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontSize: "12px", fontWeight: "600", fontFamily: "inherit", boxShadow: "0 2px 6px rgba(37,99,235,0.2)" },
+  payBtn: { flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", padding: "10px", background: "#F97316", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontSize: "12px", fontWeight: "600", fontFamily: "inherit", boxShadow: "0 2px 6px rgba(249,115,22,0.2)" },
   waOrderBtn: { flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", padding: "10px", background: "#16a34a", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontSize: "12px", fontWeight: "600", fontFamily: "inherit", boxShadow: "0 2px 6px rgba(22,163,74,0.2)" },
   itemsBlock: { marginTop: "16px", padding: "14px", background: "#F8FAFC", border: "1px solid #f1f5f9", borderRadius: "10px" },
   itemsTable: { width: "100%", fontSize: "12px", color: "#64748b" },
@@ -458,6 +490,12 @@ const styles = {
   orderContext: { display: "flex", gap: "10px", fontSize: "11px", fontWeight: "600", color: "#94a3b8", marginBottom: "6px", background: "#f8fafc", padding: "4px 8px", borderRadius: "6px", width: "fit-content" },
   entryReason: { fontSize: "13px", color: "#64748b", marginBottom: "6px" },
   entryBalance: { fontSize: "11px", color: "#94a3b8", fontWeight: "500" },
+
+  ledgerTable: { width: "100%", borderCollapse: "collapse" },
+  lTh: { textAlign: 'left', fontSize: '11px', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', padding: '12px 8px', borderBottom: '1px solid #f1f5f9' },
+  lTr: { borderBottom: '1px solid #f8fafc', transition: 'background 0.2s' },
+  lTd: { padding: '12px 8px', fontSize: '13px' },
+  tableWrap: { overflowX: 'auto' },
 
   emptyState: { textAlign: "center", padding: "48px 32px", color: "#94a3b8" },
   modalBackdrop: { position: "fixed", inset: 0, background: "rgba(15, 23, 42, 0.4)", backdropFilter: "blur(4px)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" },

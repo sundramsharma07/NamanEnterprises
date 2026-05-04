@@ -176,7 +176,7 @@ function Products() {
         <motion.button 
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
-          style={styles.addBtn} 
+          style={{ ...styles.addBtn, background: "#F97316", border: "none" }} 
           onClick={() => toast("Use the table rows to adjust stock levels", { icon: "📦" })}
         >
           <Plus size={16} /> Add Product
@@ -186,7 +186,7 @@ function Products() {
       {/* Stats */}
       <div style={styles.statsGrid}>
         <div style={styles.statCard}>
-          <div style={{ ...styles.iconBox, background: "rgba(37, 99, 235, 0.08)", color: "#2563EB" }}>
+          <div style={{ ...styles.iconBox, background: "rgba(100, 116, 139, 0.08)", color: "#64748b" }}>
             <Package size={20} />
           </div>
           <div>
@@ -204,7 +204,7 @@ function Products() {
           </div>
         </div>
         <div style={styles.statCard}>
-          <div style={{ ...styles.iconBox, background: "rgba(22, 163, 74, 0.08)", color: "#16a34a" }}>
+          <div style={{ ...styles.iconBox, background: "rgba(249, 115, 22, 0.08)", color: "#F97316" }}>
             <TrendingUp size={20} />
           </div>
           <div>
@@ -492,9 +492,9 @@ const styles = {
   },
   iconBtn: { 
     border: "none", 
-    background: "rgba(37, 99, 235, 0.06)", 
+    background: "rgba(249, 115, 22, 0.06)", 
     cursor: "pointer", 
-    color: "#2563EB", 
+    color: "#F97316", 
     padding: "6px", 
     borderRadius: "8px",
     display: "flex",
@@ -524,7 +524,7 @@ const styles = {
     fontWeight: "800", 
     outline: "none", 
     cursor: "pointer", 
-    color: "#2563EB", 
+    color: "#F97316", 
     fontFamily: "'Inter', sans-serif",
     textTransform: "uppercase"
   },
@@ -542,7 +542,7 @@ const styles = {
     fontFamily: "'Inter', sans-serif" 
   },
   adjustBtn: { 
-    background: "#2563EB", 
+    background: "#F97316", 
     color: "#fff", 
     border: "none", 
     borderRadius: "8px", 
@@ -551,7 +551,8 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    transition: "all 0.2s ease"
+    transition: "all 0.2s ease",
+    boxShadow: "0 2px 6px rgba(249, 115, 22, 0.2)"
   },
 
   auditBtn: { display: "flex", alignItems: "center", gap: "6px", padding: "8px 14px", background: "#F8FAFC", border: "1px solid #e2e8f0", borderRadius: "8px", color: "#475569", fontWeight: "500", fontSize: "12px", cursor: "pointer", fontFamily: "inherit" },

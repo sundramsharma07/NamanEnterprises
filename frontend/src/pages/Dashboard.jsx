@@ -15,12 +15,11 @@ import { Skeleton, Card } from "../components/ui";
 import { motion, AnimatePresence } from "framer-motion";
 
 const BANNER_IMAGES = [
-  "/images/workers.png",
-  "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?q=80&w=1200&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1590483734724-383b85ad9390?q=80&w=1200&auto=format&fit=crop",
-  "/images/premium_store.png",
   "/images/store2.png",
-  "/images/store4.png"
+  "/images/store3.png",
+  "/images/store4.png",
+  "/images/store5.png",
+  "/images/workers.png"
 ];
 
 function Dashboard() {
@@ -149,8 +148,8 @@ function Dashboard() {
       label: "Total Sales", 
       value: stats.totalRevenue, 
       icon: TrendingUp, 
-      iconBg: "rgba(37, 99, 235, 0.08)",
-      iconColor: "#2563EB",
+      iconBg: "rgba(249, 115, 22, 0.08)",
+      iconColor: "#F97316",
       detail: "Gross Revenue" 
     },
     { 
@@ -206,14 +205,13 @@ function Dashboard() {
         <AnimatePresence initial={false}>
           <motion.div 
             key={bgIndex}
-            initial={{ x: "100%", opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: "-100%", opacity: 0 }}
-            transition={{ type: "spring", stiffness: 80, damping: 20 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.8 }}
             style={{
               position: "absolute",
               inset: 0,
-              background: `linear-gradient(rgba(15, 23, 42, 0.6), rgba(15, 23, 42, 0.6)), url('${BANNER_IMAGES[bgIndex]}') center/cover no-repeat`,
               display: "flex",
               flexDirection: "column",
               justifyContent: "center",
@@ -221,9 +219,22 @@ function Dashboard() {
             }}
             className="dash-banner-pad"
           >
+            {/* Lazy loaded background image */}
+            <div 
+              style={{
+                position: "absolute",
+                inset: 0,
+                backgroundImage: `linear-gradient(rgba(15, 23, 42, 0.6), rgba(15, 23, 42, 0.6)), url('${BANNER_IMAGES[bgIndex]}')`,
+                backgroundPosition: "center",
+                backgroundSize: "cover",
+                backgroundRepeat: "no-repeat",
+                zIndex: 0
+              }}
+            />
+            
             <div style={{ position: "relative", zIndex: 2 }}>
-              <h2 style={{ color: "#F59E0B", fontSize: "36px", fontWeight: "900", margin: 0, letterSpacing: "-1.5px", fontFamily: "'Outfit', sans-serif" }}>NAMAN ENTERPRISES</h2>
-              <p style={{ color: "rgba(255,255,255,0.9)", fontSize: "18px", margin: "8px 0 0 0", fontWeight: "500", textShadow: "0 2px 4px rgba(0,0,0,0.3)" }}>Building Rural Infrastructure with Trust & Quality</p>
+              <h2 style={{ color: "#F59E0B", fontSize: "36px", fontWeight: "900", margin: 0, letterSpacing: "-1.5px", fontFamily: "'Outfit', sans-serif" }}>VILLAGE INFRASTRUCTURE</h2>
+              <p style={{ color: "rgba(255,255,255,0.9)", fontSize: "18px", margin: "8px 0 0 0", fontWeight: "500", textShadow: "0 2px 4px rgba(0,0,0,0.3)" }}>Supporting rural development and the hardworking people of our villages</p>
             </div>
           </motion.div>
         </AnimatePresence>
@@ -313,7 +324,7 @@ function Dashboard() {
         {/* Business Analytics & Growth */}
         <div style={styles.pulseCard}>
           <div style={styles.secHeader}>
-            <TrendingUp size={18} color="#2563EB" />
+            <TrendingUp size={18} color="#F97316" />
             <h3 style={styles.secTitle}>Business Growth</h3>
           </div>
           
@@ -359,10 +370,10 @@ function Dashboard() {
         {/* Recent Performance Table */}
         <div style={styles.recentCard}>
           <div style={styles.secHeader}>
-            <TrendingUp size={18} color="#2563EB" />
+            <TrendingUp size={18} color="#F97316" />
             <h3 style={styles.secTitle}>Recent Orders</h3>
           </div>
-          <div style={{ overflowX: "auto" }}>
+          <div className="dash-table-wrap">
             <table style={styles.table}>
               <thead>
                 <tr>
@@ -398,6 +409,28 @@ function Dashboard() {
               </tbody>
             </table>
           </div>
+
+          <div className="dash-recent-mobile">
+            {recentOrders.map((o, i) => (
+              <div key={i} style={{ padding: "12px", borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div>
+                  <div style={{ fontWeight: "700", color: "#0F172A", fontSize: "14px" }}>{o.customer_name}</div>
+                  <div style={{ fontSize: "11px", color: "#94a3b8" }}>#{o.order_id}</div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontWeight: "800", color: "#0F172A", fontSize: "14px" }}>{formatCurrency(o.total_amount)}</div>
+                  <span style={{ 
+                    fontSize: "10px", 
+                    fontWeight: "700",
+                    color: o.remaining_amount === 0 ? '#16a34a' : '#f59e0b',
+                    textTransform: "uppercase"
+                  }}>
+                    {o.remaining_amount === 0 ? "Paid" : "Due"}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -406,14 +439,20 @@ function Dashboard() {
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .mb-8 { margin-bottom: 32px; }
         .dash-main-grid { display: grid; grid-template-columns: 1fr 1.6fr; gap: 20px; align-items: start; }
-        .dash-banner { position: relative; width: 100%; height: 240px; margin-bottom: 32px; border-radius: 24px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 30px rgba(0,0,0,0.1); background: #0F172A; }
-        .dash-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 32px; }
+        .dash-table-wrap { display: block; overflow-x: auto; }
+        .dash-recent-mobile { display: none; }
+        
         @media (max-width: 768px) {
+          .dash-table-wrap { display: none; }
+          .dash-recent-mobile { display: flex; flex-direction: column; }
           .dash-banner { height: 160px; border-radius: 16px; margin-bottom: 20px; }
           .dash-banner h2 { font-size: 22px !important; letter-spacing: -0.5px !important; }
           .dash-banner p { font-size: 13px !important; }
           .dash-banner-pad { padding: 0 20px !important; }
           .dash-stats-grid { grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+          @media (max-width: 480px) {
+            .dash-stats-grid { grid-template-columns: 1fr !important; }
+          }
           .dash-main-grid { grid-template-columns: 1fr !important; }
           .dash-stack-hdr { flex-direction: column; align-items: flex-start !important; }
           .dash-hdr-btns { width: 100%; }
@@ -431,7 +470,7 @@ const styles = {
   title: { fontSize: "28px", fontWeight: "800", color: "#0F172A", margin: "0 0 6px", letterSpacing: "-0.5px" },
   subtitle: { color: "#64748b", fontSize: "14px", fontWeight: "400" },
   actions: { display: "flex", gap: "10px" },
-  primaryBtn: { display: "flex", alignItems: "center", gap: "8px", padding: "10px 20px", background: "#2563EB", color: "#fff", border: "none", borderRadius: "10px", cursor: "pointer", fontWeight: "600", fontSize: "13px", boxShadow: "0 2px 8px rgba(37, 99, 235, 0.25)", transition: "all 0.2s", fontFamily: "inherit" },
+  primaryBtn: { display: "flex", alignItems: "center", gap: "8px", padding: "10px 20px", background: "#F97316", color: "#fff", border: "none", borderRadius: "10px", cursor: "pointer", fontWeight: "600", fontSize: "13px", boxShadow: "0 2px 8px rgba(249, 115, 22, 0.25)", transition: "all 0.2s", fontFamily: "inherit" },
   secondaryBtn: { display: "flex", alignItems: "center", gap: "8px", padding: "10px 20px", background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "10px", cursor: "pointer", fontWeight: "600", fontSize: "13px", color: "#475569", transition: "all 0.2s", fontFamily: "inherit" },
   
   statsGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "20px", marginBottom: "32px" },
@@ -463,7 +502,7 @@ const styles = {
   tr: { borderBottom: "1px solid #f1f5f9", transition: "background 0.2s" },
   td: { padding: "16px", fontSize: "13px", color: "#475569" },
   tdName: { fontWeight: "600", color: "#0F172A" },
-  auditCode: { background: "#F8FAFC", padding: "4px 10px", borderRadius: "6px", fontSize: "12px", fontWeight: "600", color: "#2563EB", border: "1px solid #e2e8f0" },
+  auditCode: { background: "#F8FAFC", padding: "4px 10px", borderRadius: "6px", fontSize: "12px", fontWeight: "600", color: "#F97316", border: "1px solid #e2e8f0" },
   statusBadge: { padding: "4px 12px", borderRadius: "20px", fontSize: "11px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.3px" }
 };
 

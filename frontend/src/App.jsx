@@ -58,7 +58,7 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
-function TopBar({ onMenuClick }) {
+function TopBar({ onMenuClick, className }) {
   const { isLoaded, userId } = useAuth();
   const { user } = useUser();
   const navigate = useNavigate();
@@ -112,6 +112,7 @@ function TopBar({ onMenuClick }) {
 
   return (
     <div
+      className={className}
       style={{
         display: "flex",
         justifyContent: "space-between",
@@ -245,6 +246,48 @@ function TopBar({ onMenuClick }) {
   );
 }
 
+function BackgroundDesign() {
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: -1, overflow: "hidden", pointerEvents: "none", background: "#F8FAFC" }}>
+      <motion.div
+        animate={{
+          x: [0, 100, 0],
+          y: [0, 50, 0],
+        }}
+        transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+        style={{
+          position: "absolute",
+          top: "-10%",
+          left: "-10%",
+          width: "40vw",
+          height: "40vw",
+          background: "radial-gradient(circle, rgba(37, 99, 235, 0.05) 0%, rgba(37, 99, 235, 0) 70%)",
+          borderRadius: "50%",
+          filter: "blur(60px)",
+        }}
+      />
+      <motion.div
+        animate={{
+          x: [0, -80, 0],
+          y: [0, 100, 0],
+        }}
+        transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+        style={{
+          position: "absolute",
+          bottom: "10%",
+          right: "-5%",
+          width: "35vw",
+          height: "35vw",
+          background: "radial-gradient(circle, rgba(245, 158, 11, 0.05) 0%, rgba(245, 158, 11, 0) 70%)",
+          borderRadius: "50%",
+          filter: "blur(60px)",
+        }}
+      />
+      <div style={{ position: "absolute", inset: 0, opacity: 0.2, backgroundImage: "radial-gradient(#e2e8f0 0.5px, transparent 0.5px)", backgroundSize: "24px 24px" }} />
+    </div>
+  );
+}
+
 function Layout() {
   const location = useLocation();
 
@@ -257,7 +300,7 @@ function Layout() {
   if (isFullPage) {
     return (
       <div style={{ background: "#F8FAFC", minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-        {!isLoginPage && <Navbar />}
+        {!isLoginPage && <Navbar className="no-print" />}
         <Toaster position="top-right" />
         <main style={{ flex: 1 }}>
           <Routes>
@@ -272,13 +315,20 @@ function Layout() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", background: "#F8FAFC", minHeight: "100vh" }}>
+    <div style={{ display: "flex", flexDirection: "column", background: "transparent", minHeight: "100vh" }}>
+      <BackgroundDesign />
       <Toaster position="top-right" />
-      <Navbar />
-      <TopBar />
+      <Navbar className="no-print" />
+      <TopBar className="no-print hide-mobile" onMenuClick={() => {}} />
       
-      <main style={{ flex: 1, width: "100%" }}>
-        <div style={{ maxWidth: "1400px", margin: "0 auto", padding: "28px 24px 40px" }}>
+      <main style={{ flex: 1, width: "100%", position: "relative", zIndex: 1 }}>
+        <motion.div 
+          key={location.pathname}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
+          className="page-container"
+        >
           <Routes>
             <Route
               path="/"
@@ -382,7 +432,7 @@ function Layout() {
 
         <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-        </div>
+        </motion.div>
       </main>
     </div>
   );

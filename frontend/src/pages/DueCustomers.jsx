@@ -128,7 +128,7 @@ function DueCustomers() {
           </div>
         </div>
         <div style={styles.sumCard}>
-          <div style={{ ...styles.sumIcon, background: "rgba(37, 99, 235, 0.08)", color: "#2563EB" }}>
+          <div style={{ ...styles.sumIcon, background: "rgba(100, 116, 139, 0.08)", color: "#64748b" }}>
             <User size={20} />
           </div>
           <div>
@@ -137,7 +137,7 @@ function DueCustomers() {
           </div>
         </div>
         <div style={styles.sumCard}>
-          <div style={{ ...styles.sumIcon, background: "rgba(245, 158, 11, 0.08)", color: "#f59e0b" }}>
+          <div style={{ ...styles.sumIcon, background: "rgba(249, 115, 22, 0.08)", color: "#F97316" }}>
             <Calendar size={20} />
           </div>
           <div>
@@ -323,13 +323,13 @@ const styles = {
   tr: { borderBottom: "1px solid #f1f5f9", background: "#fff", transition: "all 0.15s" },
   td: { padding: "16px 20px", verticalAlign: "middle", fontSize: "13px" },
   custCell: { display: "flex", alignItems: "center", gap: "12px" },
-  avatar: { width: "40px", height: "40px", background: "rgba(37, 99, 235, 0.08)", color: "#2563EB", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "700", fontSize: "16px" },
+  avatar: { width: "40px", height: "40px", background: "rgba(249, 115, 22, 0.08)", color: "#F97316", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "700", fontSize: "16px" },
   custName: { fontWeight: "600", color: "#0F172A", fontSize: "14px" },
   custPhone: { fontSize: "11px", color: "#94a3b8", fontWeight: "500", display: "flex", alignItems: "center", gap: "4px", marginTop: "2px" },
   ageBadge: { padding: "4px 12px", borderRadius: "6px", fontSize: "11px", fontWeight: "600" },
   actions: { display: "flex", gap: "8px", justifyContent: "flex-end" },
-  waBtn: { display: "flex", alignItems: "center", gap: "6px", padding: "8px 14px", background: "rgba(22, 163, 74, 0.06)", color: "#16a34a", border: "none", borderRadius: "8px", cursor: "pointer", fontSize: "12px", fontWeight: "600", fontFamily: "inherit" },
-  settleBtn: { display: "flex", alignItems: "center", gap: "6px", padding: "8px 14px", background: "#2563EB", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontSize: "12px", fontWeight: "600", boxShadow: "0 2px 6px rgba(37, 99, 235, 0.2)", fontFamily: "inherit" },
+  waBtn: { display: "flex", alignItems: "center", gap: "6px", padding: "8px 14px", background: "#16A34A", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontSize: "12px", fontWeight: "600", fontFamily: "inherit", boxShadow: "0 2px 6px rgba(22, 163, 74, 0.2)" },
+  settleBtn: { display: "flex", alignItems: "center", gap: "6px", padding: "8px 14px", background: "#F97316", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontSize: "12px", fontWeight: "600", boxShadow: "0 2px 6px rgba(249, 115, 22, 0.2)", fontFamily: "inherit" },
   emptyState: { padding: "80px 40px", textAlign: "center" }
 };
 

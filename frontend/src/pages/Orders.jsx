@@ -295,7 +295,7 @@ const styles = {
   titleArea: { flex: 1 },
   title: { fontSize: "28px", fontWeight: "800", color: "#0F172A", margin: "0 0 4px", letterSpacing: "-0.5px" },
   subtitle: { color: "#64748b", fontSize: "14px", fontWeight: "400" },
-  addBtn: { display: "flex", alignItems: "center", gap: "8px", padding: "10px 20px", background: "#2563EB", color: "#fff", border: "none", borderRadius: "10px", cursor: "pointer", fontWeight: "600", fontSize: "13px", boxShadow: "0 2px 8px rgba(37, 99, 235, 0.25)", fontFamily: "inherit" },
+  addBtn: { display: "flex", alignItems: "center", gap: "8px", padding: "10px 20px", background: "#F97316", color: "#fff", border: "none", borderRadius: "10px", cursor: "pointer", fontWeight: "600", fontSize: "13px", boxShadow: "0 2px 8px rgba(249, 115, 22, 0.25)", fontFamily: "inherit" },
 
   statsGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px", marginBottom: "24px" },
   statCard: { display: "flex", alignItems: "center", gap: "16px", padding: "20px 24px", background: "#fff", border: "1px solid #e2e8f0", borderRadius: "14px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" },

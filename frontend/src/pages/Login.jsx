@@ -82,21 +82,30 @@ function Login() {
         }
 
         .cl-formButtonPrimary {
-          background: #0F172A !important;
+          background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%) !important;
           border-radius: 12px !important;
           font-weight: 700 !important;
           height: 48px !important;
+          border: none !important;
+          box-shadow: 0 4px 14px rgba(245, 158, 11, 0.3) !important;
+          transition: all 0.2s ease !important;
+        }
+        .cl-formButtonPrimary:hover {
+          transform: translateY(-2px) !important;
+          box-shadow: 0 6px 20px rgba(245, 158, 11, 0.5) !important;
         }
 
         .brand-text {
           font-family: 'Playfair Display', serif;
-          font-size: 84px;
+          font-size: 88px;
           font-weight: 900;
-          line-height: 0.9;
-          letter-spacing: -2px;
-          color: #FFFFFF;
+          line-height: 0.85;
+          letter-spacing: -3px;
+          background: linear-gradient(180deg, #FFFFFF 0%, #CBD5E1 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
           margin: 0;
-          text-shadow: 0 10px 30px rgba(0,0,0,0.5);
+          filter: drop-shadow(0 15px 25px rgba(0,0,0,0.5));
         }
 
         .sub-brand-text {
@@ -142,10 +151,18 @@ function Login() {
             font-size: 42px !important;
           }
           .sub-brand-text {
-            margin-top: 5px !important;
+            font-size: 18px !important;
+            letter-spacing: 8px !important;
+            margin-top: 10px !important;
+            margin-bottom: 40px !important;
           }
-          .hero-text, .quote-wrapper {
-            display: none !important;
+          .hero-text {
+            margin-bottom: 40px !important;
+            margin-top: 20px !important;
+          }
+          .quote-wrapper {
+            margin-bottom: 40px !important;
+            min-height: 120px !important;
           }
           .form-section-login {
             flex: 1 !important;
@@ -300,12 +317,13 @@ const styles = {
   mainContainer: {
     width: "100%",
     maxWidth: "1280px",
-    height: "800px",
+    minHeight: "700px",
+    height: "auto",
     background: "#FFFFFF",
-    borderRadius: "40px", // Keeps the heavy curves
+    borderRadius: "48px", // Enhanced heavy corners
     display: "flex",
     overflow: "hidden",
-    boxShadow: "0 40px 100px -20px rgba(15, 23, 42, 0.12)",
+    boxShadow: "0 60px 120px -20px rgba(15, 23, 42, 0.25)", // Softer, deeper shadow
     border: "1px solid #F1F5F9",
     position: "relative",
     zIndex: 10,
@@ -325,7 +343,7 @@ const styles = {
   brandOverlay: {
     position: "absolute",
     inset: 0,
-    background: "rgba(15, 23, 42, 0.75)",
+    background: "linear-gradient(135deg, rgba(2, 6, 23, 0.85) 0%, rgba(15, 23, 42, 0.4) 50%, rgba(2, 6, 23, 0.95) 100%)",
     zIndex: 1,
   },
   brandContent: {
@@ -333,13 +351,7 @@ const styles = {
     zIndex: 2,
   },
   brandBox: {
-    background: "rgba(2, 6, 23, 0.4)",
-    backdropFilter: "blur(20px)",
-    padding: "40px",
-    borderRadius: "24px",
-    border: "1px solid rgba(255, 255, 255, 0.1)",
-    marginBottom: "40px",
-    boxShadow: "0 20px 40px rgba(0,0,0,0.3)",
+    // Unused, keeping empty to maintain structure if needed later
   },
   logoBadge: {
     display: "flex",
@@ -474,11 +486,12 @@ const styles = {
   },
   formSection: {
     flex: 0.9,
-    background: "#FFFFFF",
+    background: "#FAFAFA",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     padding: "40px",
+    borderRadius: "0 48px 48px 0",
   },
   loginWrapper: {
     width: "100%",

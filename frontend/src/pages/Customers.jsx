@@ -167,6 +167,7 @@ export default function Customers() {
           <Button 
             variant={showAddForm ? "danger" : "primary"}
             onClick={showAddForm ? closeForm : () => setShowAddForm(true)} 
+            style={{ background: showAddForm ? "#DC2626" : "#F97316", color: "#fff", border: "none" }}
           >
             {showAddForm ? "Close" : <><UserPlus size={16} /> Add Customer</>}
           </Button>
@@ -215,7 +216,7 @@ export default function Customers() {
                     style={styles.input} 
                   />
                 </div>
-                <Button type="submit" variant="primary">
+                <Button type="submit" variant="primary" style={{ background: "#F97316", color: "#fff", border: "none" }}>
                   {editingCustomer ? "Update Details" : "Add Customer"} <ArrowRight size={14} />
                 </Button>
               </form>
@@ -240,8 +241,32 @@ export default function Customers() {
         </div>
       </div>
 
-      <div style={styles.tableWrap}>
-        <table style={styles.table}>
+      <style>{`
+        .cust-table-wrap { overflow-x: auto; border-radius: 16px; border: 1px solid #e2e8f0; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+        .cust-table { width: 100%; border-collapse: collapse; }
+        .cust-card-list { display: none; }
+        @media (max-width: 768px) {
+          .cust-table-wrap { display: none; }
+          .cust-card-list { display: flex; flex-direction: column; gap: 12px; }
+          .cust-card {
+            background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px;
+            display: flex; flex-direction: column; gap: 12px;
+          }
+          .cust-card-top { display: flex; align-items: center; gap: 12px; }
+          .cust-card-info { flex: 1; }
+          .cust-card-name { font-weight: 700; color: #0F172A; font-size: 15px; }
+          .cust-card-phone { font-size: 12px; color: #64748b; margin-top: 2px; display: flex; alignItems: center; gap: 4px; }
+          .cust-card-details { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; border-top: 1px solid #f1f5f9; padding-top: 12px; }
+          .cust-card-box { background: #F8FAFC; padding: 10px; borderRadius: 10px; }
+          .cust-card-label { font-size: 10px; color: #94a3b8; font-weight: 600; text-transform: uppercase; margin-bottom: 2px; }
+          .cust-card-val { font-weight: 700; color: #0F172A; font-size: 14px; }
+          .cust-card-actions { display: flex; gap: 8px; border-top: 1px solid #f1f5f9; padding-top: 12px; }
+          .cust-card-actions button { flex: 1; }
+        }
+      `}</style>
+
+      <div className="cust-table-wrap">
+        <table className="cust-table">
           <thead style={styles.thead}>
             <tr>
               <th style={styles.th}>Customer</th>
@@ -272,7 +297,7 @@ export default function Customers() {
                 </td>
                 <td style={styles.td}>
                   <div style={styles.contactCell}>
-                    <div style={styles.contactItem}><Phone size={12} color="#2563EB" /> {c.phone}</div>
+                    <div style={styles.contactItem}><Phone size={12} color="#F97316" /> {c.phone}</div>
                     <div style={styles.contactItem}><MapPin size={12} color="#94a3b8" /> {c.address || "N/A"}</div>
                   </div>
                 </td>
@@ -331,6 +356,56 @@ export default function Customers() {
             <p style={{ margin: 0, color: "#94a3b8", fontSize: "14px" }}>Refine your search or add a new customer.</p>
           </div>
         )}
+      </div>
+
+      {/* Mobile Card List */}
+      <div className="cust-card-list">
+        {filtered.map((c, i) => (
+          <motion.div 
+            key={c.id} 
+            className="cust-card"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.03 }}
+            onClick={() => navigate(`/customers/${c.id}`)}
+          >
+            <div className="cust-card-top">
+              <div style={styles.avatar}>{c.name?.charAt(0) || '?'}</div>
+              <div className="cust-card-info">
+                <div className="cust-card-name">{c.name}</div>
+                <div className="cust-card-phone"><Phone size={11} /> {c.phone}</div>
+              </div>
+              <span style={{ 
+                ...styles.badge, 
+                background: c.total_due > 0 ? "rgba(239, 68, 68, 0.08)" : "rgba(22, 163, 74, 0.08)",
+                color: c.total_due > 0 ? "#ef4444" : "#16a34a"
+              }}>
+                {c.total_due > 0 ? "Due" : "Clear"}
+              </span>
+            </div>
+            
+            <div className="cust-card-details">
+              <div className="cust-card-box">
+                <div className="cust-card-label">Outstanding</div>
+                <div className="cust-card-val" style={{ color: c.total_due > 0 ? "#ef4444" : "#16a34a" }}>
+                  {formatCurrency(c.total_due)}
+                </div>
+              </div>
+              <div className="cust-card-box">
+                <div className="cust-card-label">Address</div>
+                <div className="cust-card-val" style={{ fontSize: "11px", color: "#64748b" }}>
+                  {c.address || "N/A"}
+                </div>
+              </div>
+            </div>
+
+            <div className="cust-card-actions">
+              <button onClick={(e) => startEdit(e, c)} style={styles.actionBtn}><Pencil size={14} /> Edit</button>
+              <button onClick={(e) => { e.stopPropagation(); navigate(`/customers/${c.id}`); }} style={styles.actionBtn}><Eye size={14} /> View</button>
+              <button onClick={(e) => handlePrint(e, c)} style={styles.actionBtn}><Printer size={14} /></button>
+            </div>
+          </motion.div>
+        ))}
       </div>
     </motion.div>
   );

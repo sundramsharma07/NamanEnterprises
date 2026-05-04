@@ -8,55 +8,25 @@
   --bg-hover: #f1f5f9;
   --bg-light: #f8fafc;
 
-  /* Primary Blue Palette */
-  --primary: #2563EB;
-  --primary-light: #3b82f6;
-  --primary-dark: #1d4ed8;
-  --accent: #0F172A;
-  --accent-light: #1e293b;
+  /* Premium Vibrant Gradients */
+  --grad-sunset: linear-gradient(135deg, #F97316 0%, #E11D48 100%);     /* Orange to Rose */
+  --grad-violet: linear-gradient(135deg, #8B5CF6 0%, #D946EF 100%);     /* Violet to Fuchsia */
+  --grad-emerald: linear-gradient(135deg, #10B981 0%, #064E3B 100%);    /* Emerald to Dark Green */
+  --grad-ocean: linear-gradient(135deg, #0EA5E9 0%, #2563EB 100%);      /* Sky to Blue */
+  --grad-midnight: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);   /* Slate to Navy */
+  --grad-fire: linear-gradient(135deg, #F43F5E 0%, #9F1239 100%);       /* Rose to Deep Red */
+  --grad-industrial: linear-gradient(135deg, #F97316 0%, #EA580C 100%); /* Brand Orange */
 
-  /* Functional Colors */
-  --success: #16a34a;
-  --warning: #f59e0b;
-  --danger: #ef4444;
-  --info: #38BDF8;
+  /* Global Overrides to use Gradients */
+  --primary: #F97316;
+  --brand-gradient: var(--grad-sunset);
+  --navbar-gradient: var(--grad-midnight);
+}
 
-  /* Brand Colors */
-  --brand-primary: #2563EB;
-  --brand-primary-rgb: 37, 99, 235;
-  --brand-gradient: linear-gradient(135deg, #2563EB 0%, #1d4ed8 100%);
-  --brand-success: #16a34a;
-  --brand-danger: #ef4444;
-
-  /* Text Colors */
-  --text-heading: #0F172A;
-  --text-main: #1e293b;
-  --text-primary: #0F172A;
-  --text-secondary: #475569;
-  --text-muted: #64748b;
-  --text-light: #94a3b8;
-
-  /* Border Colors */
-  --border-color: #e2e8f0;
-  --border-light: #f1f5f9;
-
-  /* Shadows */
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 10px 10px -5px rgba(0, 0, 0, 0.03);
-
-  /* Radii */
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
-
-  /* Navbar — Blue Gradient */
-  --navbar-bg-start: #2563EB;
-  --navbar-bg-end: #1d4ed8;
-  --navbar-gradient: linear-gradient(135deg, #2563EB 0%, #1d4ed8 100%);
+.no-print {
+  @media print {
+    display: none !important;
+  }
 }
 
 * {
@@ -88,6 +58,7 @@ h1, h2, h3, h4, h5, h6 {
 
 #root {
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
 /* ── Print Styles ── */
@@ -102,7 +73,7 @@ h1, h2, h3, h4, h5, h6 {
     border: 1px solid #ccc !important;
   }
 
-  button, .btn {
+  button, .btn, .no-print {
     display: none !important;
   }
 }
@@ -155,6 +126,16 @@ h1, h2, h3, h4, h5, h6 {
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+@keyframes pulse-notif {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+.pulse-notif {
+  animation: pulse-notif 2s infinite ease-in-out;
 }
 
 .animate-fade-in { animation: fadeIn 0.4s ease-out; }
@@ -239,8 +220,9 @@ input:focus, textarea:focus, select:focus {
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .hide-mobile { display: none !important; }
+  .show-mobile-only { display: block !important; }
   .stack-mobile { flex-direction: column !important; }
   .grid-mobile-1 { grid-template-columns: 1fr !important; }
   
@@ -255,8 +237,50 @@ input:focus, textarea:focus, select:focus {
   .table-container {
     overflow-x: auto !important;
     -webkit-overflow-scrolling: touch;
+    margin-bottom: 1rem;
+  }
+  
+  .table-container::-webkit-scrollbar {
+    height: 4px;
+  }
+  
+  .table-container::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
+    border-radius: 10px;
+  }
+}
+
+.hide-mobile {
+  @media (max-width: 768px) {
+    display: none !important;
+  }
+}
+
+.show-mobile-only {
+  @media (min-width: 769px) {
+    display: none !important;
   }
 }
 
 /* ── Helper Classes ── */
 .mb-8 { margin-bottom: 32px; }
+
+/* Global Layout Utilities */
+.page-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+@media (max-width: 768px) {
+  .page-container {
+    padding: 16px;
+  }
+}
+
+.section-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}

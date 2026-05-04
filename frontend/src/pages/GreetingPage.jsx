@@ -227,8 +227,7 @@ const styles = {
   tvWrapper: {
     position: "relative",
     zIndex: 10,
-    width: "85%",
-    maxWidth: "1100px",
+    width: "clamp(280px, 94%, 1100px)",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",

@@ -22,6 +22,8 @@ function CreateOrder() {
   const [products, setProducts] = useState([]);
   const [customerId, setCustomerId] = useState("");
   const [paidAmount, setPaidAmount] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("Cash");
+  const [partialMethod, setPartialMethod] = useState("");
   const [items, setItems] = useState([{ product_id: "", quantity: 1 }]);
   const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
@@ -88,6 +90,7 @@ function CreateOrder() {
       const res = await api.post("/orders", {
         customer_id: Number(customerId),
         paid_amount: Number(paidAmount || 0),
+        payment_method: paymentMethod === "Partial" ? (partialMethod || "Partial") : paymentMethod,
         items: validItems.map(i => ({ product_id: Number(i.product_id), quantity: Number(i.quantity) }))
       });
       toast.success(`Order Created: ${res.data.order_id}`);
@@ -212,8 +215,61 @@ function CreateOrder() {
           </div>
 
           <div style={styles.paymentCard}>
-            <h3 style={styles.cardTitle}><IndianRupee size={18} color="#2563EB" /> Payment Received</h3>
+            <h3 style={styles.cardTitle}><IndianRupee size={18} color="#2563EB" /> Payment Entry</h3>
             <div style={styles.paymentForm}>
+              <div style={styles.paymentMethodSection}>
+                <label style={styles.label}>Payment Method</label>
+                <div style={styles.methodGrid}>
+                  {["Cash", "UPI", "Cheque", "Partial"].map(m => (
+                    <button
+                      key={m}
+                      onClick={() => {
+                        setPaymentMethod(m);
+                        if (m !== "Partial") setPartialMethod("");
+                      }}
+                      style={{
+                        ...styles.methodBtn,
+                        background: paymentMethod === m ? "#2563EB" : "#F8FAFC",
+                        color: paymentMethod === m ? "#fff" : "#475569",
+                        borderColor: paymentMethod === m ? "#2563EB" : "#e2e8f0"
+                      }}
+                    >
+                      {m === "Partial" ? "Partial Payment" : m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <AnimatePresence>
+                {paymentMethod === "Partial" && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    style={{ overflow: "hidden", marginBottom: "20px" }}
+                  >
+                    <label style={styles.label}>Select Partial Type</label>
+                    <div style={styles.methodGrid}>
+                      {["Partial Cash", "Partial UPI", "Partial Cheque"].map(pm => (
+                        <button
+                          key={pm}
+                          onClick={() => setPartialMethod(pm)}
+                          style={{
+                            ...styles.methodBtn,
+                            background: partialMethod === pm ? "#3b82f6" : "#F8FAFC",
+                            color: partialMethod === pm ? "#fff" : "#475569",
+                            borderColor: partialMethod === pm ? "#3b82f6" : "#e2e8f0",
+                            fontSize: "12px"
+                          }}
+                        >
+                          {pm}
+                        </button>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               <div style={styles.field}>
                 <label style={styles.label}>Amount Received (₹)</label>
                 <div style={styles.inputWrapper}>
@@ -356,6 +412,10 @@ const styles = {
   inputIcon: { position: "absolute", left: "14px", color: "#94a3b8" },
   mainInput: { width: "100%", padding: "14px 14px 14px 44px", borderRadius: "12px", border: "1px solid #e2e8f0", fontSize: "18px", fontWeight: "700", outline: "none", color: "#0F172A", background: "#F8FAFC", fontFamily: "inherit" },
 
+  paymentMethodSection: { marginBottom: "20px" },
+  methodGrid: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "10px", marginTop: "10px" },
+  methodBtn: { padding: "12px", borderRadius: "10px", border: "1px solid #e2e8f0", background: "#F8FAFC", cursor: "pointer", fontWeight: "700", fontSize: "13px", transition: "all 0.2s", fontFamily: "inherit" },
+
   summaryCard: { padding: "28px", background: "#fff", borderRadius: "16px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)", position: "sticky", top: "24px", className: "co-summary-card" },
   customerSec: { paddingBottom: "24px", borderBottom: "1px solid #f1f5f9", marginBottom: "24px" },
   secLabel: { fontSize: "11px", fontWeight: "600", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "16px" },
@@ -371,7 +431,7 @@ const styles = {
   dueAlert: { marginTop: "20px", padding: "16px", background: "#F8FAFC", borderRadius: "12px", display: "flex", flexDirection: "column", gap: "10px" },
   dueRow: { display: "flex", justifyContent: "space-between", fontSize: "13px", fontWeight: "600", color: "#475569" },
 
-  checkoutBtn: { width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", padding: "14px", border: "none", borderRadius: "12px", color: "#fff", fontSize: "15px", fontWeight: "700", cursor: "pointer", background: "#2563EB", boxShadow: "0 4px 12px rgba(37, 99, 235, 0.25)", fontFamily: "inherit" },
+  checkoutBtn: { width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", padding: "14px", border: "none", borderRadius: "12px", color: "#fff", fontSize: "15px", fontWeight: "700", cursor: "pointer", background: "#F97316", boxShadow: "0 4px 12px rgba(249, 115, 22, 0.25)", fontFamily: "inherit" },
   tipsBox: { display: "flex", gap: "10px", color: "#94a3b8", fontSize: "12px", padding: "0 8px", fontWeight: "400", alignItems: "center" }
 };
 

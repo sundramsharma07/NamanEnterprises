@@ -88,7 +88,40 @@ export default function OrderDetails() {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={styles.container}>
-      <header className="od-header" style={styles.header}>
+      <style>{`
+        .od-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
+        .od-details-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
+        .od-billing-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; padding: 24px; background: #F8FAFC; border-radius: 14px; border: 1px solid #f1f5f9; }
+        .od-invoice-main { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; }
+        
+        .od-table-container { border-radius: 12px; overflow: hidden; border: 1px solid #f1f5f9; }
+        .od-items-mobile { display: none; }
+        
+        @media (max-width: 768px) {
+          .od-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+          .od-header > div { width: 100%; display: flex; gap: 8px; }
+          .od-header > div button { flex: 1; justify-content: center; }
+          .od-details-grid { grid-template-columns: 1fr !important; }
+          .od-billing-grid { grid-template-columns: 1fr !important; gap: 16px; padding: 16px; }
+          .od-invoice-main { flex-direction: column; gap: 12px; align-items: flex-start; }
+          
+          .od-table-container { display: none; }
+          .od-items-mobile { display: flex; flex-direction: column; gap: 12px; padding: 12px; }
+          .od-item-card { 
+            background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px;
+            display: flex; flex-direction: column; gap: 8px;
+          }
+          .od-item-row { display: flex; justify-content: space-between; align-items: center; }
+          .od-item-label { font-size: 11px; color: #94a3b8; font-weight: 600; text-transform: uppercase; }
+          .od-item-val { font-weight: 700; color: #0F172A; font-size: 14px; }
+        }
+        @media print {
+          nav, header, .payNowBtn { display: none !important; }
+          .container { padding: 0 !important; background: white !important; }
+        }
+      `}</style>
+
+      <header className="od-header">
         <button onClick={() => navigate('/orders')} style={styles.backBtn}>
           <ArrowLeft size={18} /> Orders History
         </button>
@@ -102,7 +135,7 @@ export default function OrderDetails() {
       <div style={styles.content}>
         {/* Invoice Header */}
         <Card style={styles.invoiceHead}>
-          <div className="od-invoice-main" style={styles.invoiceMain}>
+          <div className="od-invoice-main">
             <div style={styles.brandInfo}>
               <div style={styles.invoiceLogo}>NE</div>
               <div>
@@ -115,7 +148,7 @@ export default function OrderDetails() {
             </div>
           </div>
 
-          <div className="od-billing-grid" style={styles.billingGrid}>
+          <div className="od-billing-grid">
             <div style={styles.billBox}>
               <h4 style={styles.billLabel}>Billed To</h4>
               <div style={styles.custBox}>
@@ -143,35 +176,55 @@ export default function OrderDetails() {
         </Card>
 
         {/* Details Grid */}
-        <div className="od-details-grid" style={styles.detailsGrid}>
+        <div className="od-details-grid">
           <div style={styles.itemsSection}>
             <h3 style={styles.sectionTitle}><Package size={20} /> Itemized Breakdown</h3>
-            <Card style={{ padding: 0, overflow: 'hidden' }}>
-              <div className="od-table-wrap">
-              <table className="od-table" style={styles.table}>
-                <thead style={styles.thead}>
-                  <tr>
-                    <th style={styles.th}>Product / Variant</th>
-                    <th style={styles.th}>Rate</th>
-                    <th style={styles.th}>Qty</th>
-                    <th style={styles.th}>Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((item, idx) => (
-                    <tr key={idx} style={styles.tr}>
-                      <td style={styles.td}>
-                        <div style={styles.itemName}>{item.product_name}</div>
-                        <div style={styles.itemMeta}>{item.category} • {item.variant || 'Standard'}</div>
-                      </td>
-                      <td style={styles.td}>{formatCurrency(item.price)}</td>
-                      <td style={styles.td}>{item.quantity} {item.unit}</td>
-                      <td style={{ ...styles.td, fontWeight: 700 }}>{formatCurrency(item.line_total)}</td>
+            <Card style={{ padding: 0, overflow: 'hidden', border: 'none', background: 'transparent' }}>
+              <div className="od-table-container">
+                <table style={styles.table}>
+                  <thead style={styles.thead}>
+                    <tr>
+                      <th style={styles.th}>Product / Variant</th>
+                      <th style={styles.th}>Rate</th>
+                      <th style={styles.th}>Qty</th>
+                      <th style={styles.th}>Amount</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {items.map((item, idx) => (
+                      <tr key={idx} style={styles.tr}>
+                        <td style={styles.td}>
+                          <div style={styles.itemName}>{item.product_name}</div>
+                          <div style={styles.itemMeta}>{item.category} • {item.variant || 'Standard'}</div>
+                        </td>
+                        <td style={styles.td}>{formatCurrency(item.price)}</td>
+                        <td style={styles.td}>{item.quantity} {item.unit}</td>
+                        <td style={{ ...styles.td, fontWeight: 700 }}>{formatCurrency(item.line_total)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
+
+              <div className="od-items-mobile">
+                {items.map((item, idx) => (
+                  <div key={idx} className="od-item-card">
+                    <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '8px', marginBottom: '4px' }}>
+                      <div style={styles.itemName}>{item.product_name}</div>
+                      <div style={styles.itemMeta}>{item.category} • {item.variant || 'Standard'}</div>
+                    </div>
+                    <div className="od-item-row">
+                      <span className="od-item-label">Rate × Qty</span>
+                      <span className="od-item-val">{formatCurrency(item.price)} × {item.quantity}</span>
+                    </div>
+                    <div className="od-item-row">
+                      <span className="od-item-label">Total</span>
+                      <span className="od-item-val" style={{ color: '#2563EB' }}>{formatCurrency(item.line_total)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
               <div style={styles.footerSummary}>
                 <div style={styles.footRow}>
                   <span>Subtotal</span>
@@ -181,7 +234,7 @@ export default function OrderDetails() {
                   <span>Tax (0%)</span>
                   <span>₹0</span>
                 </div>
-                <div style={{ ...styles.footRow, fontSize: '20px', fontWeight: '800', color: '#0f172a', marginTop: '12px' }}>
+                <div style={{ ...styles.footRow, fontSize: '18px', fontWeight: '800', color: '#0f172a', marginTop: '12px' }}>
                   <span>Total Invoice</span>
                   <span>{formatCurrency(order.total_amount)}</span>
                 </div>
@@ -207,7 +260,7 @@ export default function OrderDetails() {
               
               <div style={styles.balanceBox}>
                 <div style={styles.balanceLabel}>Outstanding Balance</div>
-                <div style={{ ...styles.balanceVal, color: Number(order.remaining_amount) > 0 ? 'var(--danger)' : 'var(--success)' }}>
+                <div style={{ ...styles.balanceVal, color: Number(order.remaining_amount) > 0 ? 'var(--danger)' : 'var(--success)', fontSize: '24px' }}>
                   {formatCurrency(order.remaining_amount)}
                 </div>
                 {Number(order.remaining_amount) > 0 && (
@@ -225,27 +278,6 @@ export default function OrderDetails() {
           </div>
         </div>
       </div>
-
-      <style>{`
-        .od-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
-        .od-details-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
-        .od-billing-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; padding: 24px; background: #F8FAFC; border-radius: 14px; border: 1px solid #f1f5f9; }
-        .od-invoice-main { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; }
-        @media (max-width: 768px) {
-          .od-header { flex-direction: column; align-items: flex-start; gap: 12px; }
-          .od-header > div { width: 100%; display: flex; gap: 8px; }
-          .od-header > div button { flex: 1; justify-content: center; }
-          .od-details-grid { grid-template-columns: 1fr !important; }
-          .od-billing-grid { grid-template-columns: 1fr !important; gap: 16px; padding: 16px; }
-          .od-invoice-main { flex-direction: column; gap: 12px; align-items: flex-start; }
-          .od-table-wrap { overflow-x: auto; }
-          .od-table { min-width: 500px; }
-        }
-        @media print {
-          nav, header, .payNowBtn { display: none !important; }
-          .container { padding: 0 !important; background: white !important; }
-        }
-      `}</style>
     </motion.div>
   );
 }

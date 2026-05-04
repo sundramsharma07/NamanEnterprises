@@ -80,10 +80,17 @@ function PrintReceipt() {
           #receipt { 
             box-shadow: none !important; 
             border: none !important; 
-            padding: 0.2in !important;
+            padding: 0 !important;
             width: 100% !important;
             max-width: none !important;
+            margin: 0 !important;
           }
+          @page {
+            size: A4;
+            margin: 1cm;
+          }
+          .table-header { background-color: #f8fafc !important; -webkit-print-color-adjust: exact; }
+          .summary-right { background-color: #f8fafc !important; -webkit-print-color-adjust: exact; }
         }
         
         @keyframes spin {
@@ -114,8 +121,8 @@ function PrintReceipt() {
               <h1 style={styles.storeName}>Naman Enterprises</h1>
               <p style={styles.storeSubtext}>Ajmatpur, Building Materials Store</p>
               <div style={styles.contactInfo}>
-                <span style={styles.contactItem}>📞 {import.meta.env.VITE_STORE_PHONE || "Store Phone"}</span>
-                <span style={styles.contactItem}>📍 {import.meta.env.VITE_STORE_ADDRESS || "Store Address"}</span>
+                <span style={styles.contactItem}>📞 {import.meta.env.VITE_STORE_PHONE || "9934271372"}</span>
+                <span style={styles.contactItem}>📍 Ajmatpur, Bihar</span>
               </div>
               {import.meta.env.VITE_STORE_GSTIN && (
                 <p style={styles.gstin}>GSTIN: {import.meta.env.VITE_STORE_GSTIN}</p>
@@ -141,17 +148,17 @@ function PrintReceipt() {
 
         {/* Customer Info */}
         <div style={styles.customerSection}>
-          <div style={styles.sectionTitle}>BILL TO:</div>
           <div style={styles.customerInfoGrid}>
             <div style={styles.customerMain}>
+              <div style={styles.sectionTitle}>BILL TO:</div>
               <p style={styles.customerName}>{order.customer_name || 'Walk-in Customer'}</p>
               {order.customer_phone && <p style={styles.customerContact}>📞 {order.customer_phone}</p>}
+              {order.customer_address && <p style={styles.customerAddressSimple}>{order.customer_address}</p>}
             </div>
-            {order.customer_address && (
-              <div style={styles.customerAddressBox}>
-                <p style={styles.customerAddress}>{order.customer_address}</p>
-              </div>
-            )}
+            <div style={styles.paymentMethodBox}>
+              <div style={styles.sectionTitle}>PAYMENT METHOD:</div>
+              <p style={styles.paymentMethodValue}>{order.payment_method || 'Cash'}</p>
+            </div>
           </div>
         </div>
 
@@ -159,12 +166,12 @@ function PrintReceipt() {
         <table style={styles.table}>
           <thead>
             <tr>
-              <th style={{...styles.tableHeader, width: '40px'}}>#</th>
-              <th style={styles.tableHeader}>Item Description</th>
-              <th style={{...styles.tableHeader, textAlign: 'center'}}>Qty</th>
-              <th style={{...styles.tableHeader, textAlign: 'center'}}>Unit</th>
-              <th style={{...styles.tableHeader, textAlign: 'right'}}>Rate</th>
-              <th style={{...styles.tableHeader, textAlign: 'right'}}>Total</th>
+              <th className="table-header" style={{...styles.tableHeader, width: '40px'}}>#</th>
+              <th className="table-header" style={styles.tableHeader}>Item Description</th>
+              <th className="table-header" style={{...styles.tableHeader, textAlign: 'center'}}>Qty</th>
+              <th className="table-header" style={{...styles.tableHeader, textAlign: 'center'}}>Unit</th>
+              <th className="table-header" style={{...styles.tableHeader, textAlign: 'right'}}>Rate</th>
+              <th className="table-header" style={{...styles.tableHeader, textAlign: 'right'}}>Total</th>
             </tr>
           </thead>
           <tbody>
@@ -205,11 +212,11 @@ function PrintReceipt() {
             <div style={styles.terms}>
               <p style={styles.termsTitle}>Terms & Conditions:</p>
               <p style={styles.termsItem}>* Goods once sold will not be taken back.</p>
-              <p style={styles.termsItem}>* Subject to local jurisdiction.</p>
+              <p style={styles.termsItem}>* This is a computer generated invoice.</p>
             </div>
           </div>
           
-          <div style={styles.summaryRight}>
+          <div className="summary-right" style={styles.summaryRight}>
             <div style={styles.summaryRow}>
               <span style={styles.summaryLabel}>Sub Total</span>
               <span style={styles.summaryValue}>{formatCurrency(order.total_amount)}</span>
@@ -231,8 +238,6 @@ function PrintReceipt() {
           </div>
         </div>
 
-        <div style={styles.footerSpacing} />
-
         {/* Footer */}
         <div style={styles.footer}>
           <div style={styles.signatureSection}>
@@ -243,8 +248,7 @@ function PrintReceipt() {
           </div>
           
           <div style={styles.gratitudeSection}>
-            <p style={styles.thankYou}>Thank you for choosing Naman Enterprises!</p>
-            <p style={styles.computerGenerated}>This is a computer generated receipt</p>
+            <p style={styles.thankYou}>Thank you for your business!</p>
           </div>
         </div>
       </div>
@@ -267,7 +271,7 @@ const styles = {
   container: {
     minHeight: "100vh",
     background: "#f8fafc",
-    padding: "40px 20px",
+    padding: "20px",
     fontFamily: "'Outfit', sans-serif",
     display: "flex",
     flexDirection: "column",
@@ -295,11 +299,11 @@ const styles = {
   },
   receipt: {
     width: "100%",
-    maxWidth: "850px",
+    maxWidth: "800px",
     background: "white",
-    padding: "60px",
+    padding: "40px",
     borderRadius: "8px",
-    boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
+    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
     position: "relative",
     border: "1px solid #f1f5f9"
   },
@@ -308,8 +312,8 @@ const styles = {
     top: "50%",
     left: "50%",
     transform: "translate(-50%, -50%) rotate(-15deg)",
-    opacity: "0.04",
-    width: "60%",
+    opacity: "0.03",
+    width: "50%",
     pointerEvents: "none",
     zIndex: 0,
     display: "flex",
@@ -324,18 +328,18 @@ const styles = {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: "32px",
+    marginBottom: "20px",
     position: "relative",
     zIndex: 1
   },
   headerLeft: {
     display: "flex",
-    gap: "20px",
+    gap: "16px",
     alignItems: "center"
   },
   logoWrapper: {
-    width: "70px",
-    height: "70px",
+    width: "60px",
+    height: "60px",
     display: "flex",
     alignItems: "center",
     justifyContent: "center"
@@ -350,22 +354,22 @@ const styles = {
     flexDirection: "column"
   },
   storeName: {
-    fontSize: "26px",
+    fontSize: "22px",
     fontWeight: "800",
     color: "#0f172a",
     margin: 0,
     letterSpacing: "-0.5px"
   },
   storeSubtext: {
-    fontSize: "14px",
+    fontSize: "13px",
     color: "#64748b",
-    margin: "2px 0 8px 0",
+    margin: "0 0 4px 0",
     fontWeight: "500"
   },
   contactInfo: {
     display: "flex",
-    gap: "16px",
-    fontSize: "12px",
+    gap: "12px",
+    fontSize: "11px",
     color: "#475569"
   },
   contactItem: {
@@ -374,11 +378,10 @@ const styles = {
     gap: "4px"
   },
   gstin: {
-    fontSize: "12px",
+    fontSize: "11px",
     color: "#475569",
-    margin: "4px 0 0 0",
-    fontWeight: "600",
-    fontFamily: "monospace"
+    margin: "2px 0 0 0",
+    fontWeight: "600"
   },
   headerRight: {
     textAlign: "right"
@@ -387,23 +390,23 @@ const styles = {
     display: "inline-block",
     background: "#f1f5f9",
     color: "#475569",
-    padding: "6px 16px",
-    borderRadius: "6px",
-    fontSize: "14px",
+    padding: "4px 12px",
+    borderRadius: "4px",
+    fontSize: "12px",
     fontWeight: "700",
-    marginBottom: "16px",
-    letterSpacing: "1px"
+    marginBottom: "12px",
+    letterSpacing: "0.5px"
   },
   orderKeyInfo: {
     display: "flex",
     flexDirection: "column",
-    gap: "4px"
+    gap: "2px"
   },
   keyRow: {
     display: "flex",
     justifyContent: "flex-end",
-    gap: "8px",
-    fontSize: "13px"
+    gap: "6px",
+    fontSize: "12px"
   },
   keyLabel: {
     color: "#94a3b8",
@@ -416,80 +419,82 @@ const styles = {
   divider: {
     height: "1px",
     background: "#e2e8f0",
-    margin: "0 0 32px 0",
+    margin: "0 0 20px 0",
     position: "relative",
     zIndex: 1
   },
   customerSection: {
-    marginBottom: "32px",
+    marginBottom: "24px",
     position: "relative",
     zIndex: 1
   },
   sectionTitle: {
-    fontSize: "12px",
+    fontSize: "10px",
     fontWeight: "700",
     color: "#94a3b8",
     textTransform: "uppercase",
     letterSpacing: "1px",
-    marginBottom: "12px"
+    marginBottom: "6px"
   },
   customerInfoGrid: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    gap: "40px"
+    gap: "20px"
   },
   customerMain: {
     flex: 1
   },
   customerName: {
-    fontSize: "18px",
+    fontSize: "16px",
     fontWeight: "700",
     color: "#0f172a",
-    margin: "0 0 4px 0"
+    margin: "0 0 2px 0"
   },
   customerContact: {
-    fontSize: "14px",
+    fontSize: "13px",
     color: "#64748b",
     margin: 0
   },
-  customerAddressBox: {
-    flex: 1,
-    padding: "12px",
-    background: "#f8fafc",
-    borderRadius: "8px",
-    borderLeft: "3px solid #e2e8f0"
-  },
-  customerAddress: {
-    fontSize: "13px",
+  customerAddressSimple: {
+    fontSize: "12px",
     color: "#475569",
-    margin: 0,
-    lineHeight: "1.5"
+    margin: "4px 0 0 0",
+    lineHeight: "1.4"
+  },
+  paymentMethodBox: {
+    textAlign: "right"
+  },
+  paymentMethodValue: {
+    fontSize: "14px",
+    fontWeight: "600",
+    color: "#0f172a",
+    margin: 0
   },
   table: {
     width: "100%",
     borderCollapse: "collapse",
-    marginBottom: "40px",
+    marginBottom: "24px",
     position: "relative",
     zIndex: 1
   },
   tableHeader: {
-    padding: "14px 12px",
+    padding: "10px 8px",
     background: "#f8fafc",
     textAlign: "left",
-    fontSize: "12px",
+    fontSize: "11px",
     fontWeight: "700",
     color: "#475569",
     textTransform: "uppercase",
     letterSpacing: "0.5px",
-    borderBottom: "2px solid #e2e8f0"
+    borderBottom: "1.5px solid #e2e8f0"
   },
   tableRow: {
     borderBottom: "1px solid #f1f5f9"
   },
   tableCell: {
-    padding: "16px 12px",
-    fontSize: "14px",
+    padding: "12px 8px",
+    fontSize: "13px",
     color: "#334155"
   },
   productName: {
@@ -497,58 +502,59 @@ const styles = {
     color: "#0f172a"
   },
   productVariant: {
-    fontSize: "12px",
+    fontSize: "11px",
     color: "#94a3b8"
   },
   summaryContainer: {
     display: "flex",
     justifyContent: "space-between",
     position: "relative",
-    zIndex: 1
+    zIndex: 1,
+    gap: "40px"
   },
   summaryLeft: {
-    maxWidth: "300px"
+    flex: 1
   },
   paymentStatusBadge: {
     display: "flex",
     alignItems: "center",
-    gap: "8px",
-    marginBottom: "24px"
+    gap: "6px",
+    marginBottom: "16px"
   },
   statusLabel: {
-    fontSize: "13px",
+    fontSize: "12px",
     fontWeight: "500",
     color: "#94a3b8"
   },
   statusValue: {
-    fontSize: "13px",
+    fontSize: "12px",
     fontWeight: "700"
   },
   terms: {
-    marginTop: "20px"
+    marginTop: "12px"
   },
   termsTitle: {
-    fontSize: "12px",
+    fontSize: "11px",
     fontWeight: "700",
     color: "#475569",
-    marginBottom: "8px"
+    marginBottom: "4px"
   },
   termsItem: {
-    fontSize: "11px",
+    fontSize: "10px",
     color: "#94a3b8",
-    margin: "2px 0"
+    margin: "1px 0"
   },
   summaryRight: {
-    width: "280px",
+    width: "240px",
     background: "#f8fafc",
-    padding: "24px",
-    borderRadius: "12px"
+    padding: "16px",
+    borderRadius: "8px"
   },
   summaryRow: {
     display: "flex",
     justifyContent: "space-between",
-    margin: "12px 0",
-    fontSize: "14px"
+    margin: "8px 0",
+    fontSize: "13px"
   },
   summaryLabel: {
     color: "#64748b",
@@ -561,103 +567,95 @@ const styles = {
   totalDivider: {
     height: "1px",
     background: "#e2e8f0",
-    margin: "16px 0"
+    margin: "12px 0"
   },
   finalTotalRow: {
     display: "flex",
     justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: "8px"
+    alignItems: "center"
   },
   finalTotalLabel: {
-    fontSize: "16px",
+    fontSize: "14px",
     fontWeight: "800",
     color: "#0f172a"
   },
   finalTotalValue: {
-    fontSize: "20px",
+    fontSize: "18px",
     fontWeight: "800"
-  },
-  footerSpacing: {
-    height: "60px"
   },
   footer: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "flex-end",
     position: "relative",
-    zIndex: 1
+    zIndex: 1,
+    marginTop: "40px"
   },
   signatureSection: {
     textAlign: "center"
   },
   signatureBox: {
-    width: "220px"
+    width: "180px"
   },
   signatureLine: {
-    borderBottom: "1.5px solid #cbd5e1",
-    marginBottom: "12px"
+    borderBottom: "1px solid #cbd5e1",
+    marginBottom: "8px"
   },
   signatureText: {
-    fontSize: "13px",
+    fontSize: "11px",
     fontWeight: "600",
     color: "#64748b",
     textTransform: "uppercase",
-    letterSpacing: "1px"
+    letterSpacing: "0.5px"
   },
   gratitudeSection: {
     textAlign: "right"
   },
   thankYou: {
-    fontSize: "16px",
+    fontSize: "14px",
     fontWeight: "700",
     color: "#0f172a",
-    margin: "0 0 4px 0"
-  },
-  computerGenerated: {
-    fontSize: "11px",
-    color: "#94a3b8",
     margin: 0
   },
   printSection: {
-    marginTop: "40px",
+    marginTop: "32px",
     display: "flex",
-    gap: "16px"
+    gap: "12px"
   },
   printButton: {
-    padding: "16px 32px",
+    padding: "12px 24px",
     background: "#2563eb",
     color: "white",
     border: "none",
-    borderRadius: "12px",
-    fontSize: "15px",
+    borderRadius: "8px",
+    fontSize: "14px",
     fontWeight: "600",
     cursor: "pointer",
     display: "flex",
     alignItems: "center",
-    gap: "10px",
-    boxShadow: "0 4px 12px rgba(37, 99, 235, 0.2)"
+    gap: "8px",
+    boxShadow: "0 4px 6px -1px rgba(37, 99, 235, 0.2)"
   },
   closeButton: {
-    padding: "16px 32px",
+    padding: "12px 24px",
     background: "white",
     color: "#64748b",
     border: "1px solid #e2e8f0",
-    borderRadius: "12px",
-    fontSize: "15px",
+    borderRadius: "8px",
+    fontSize: "14px",
     fontWeight: "500",
     cursor: "pointer",
-    boxShadow: "0 2px 4px rgba(0,0,0,0.05)"
+    boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
   },
   printIcon: {
-    fontSize: "18px"
+    fontSize: "16px"
   },
   errorContainer: {
     textAlign: "center",
-    padding: "60px",
+    padding: "40px",
     background: "white",
-    borderRadius: "16px",
-    boxShadow: "0 4px 6px rgba(0,0,0,0.05)"
+    borderRadius: "12px",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.1)"
   }
 };
 
