@@ -156,13 +156,8 @@ function Login() {
             margin-top: 10px !important;
             margin-bottom: 40px !important;
           }
-          .hero-text {
-            margin-bottom: 40px !important;
-            margin-top: 20px !important;
-          }
-          .quote-wrapper {
-            margin-bottom: 40px !important;
-            min-height: 120px !important;
+          .hero-text, .quote-wrapper {
+            display: none !important;
           }
           .form-section-login {
             flex: 1 !important;
