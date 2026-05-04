@@ -491,11 +491,11 @@ const styles = {
   entryReason: { fontSize: "13px", color: "#64748b", marginBottom: "6px" },
   entryBalance: { fontSize: "11px", color: "#94a3b8", fontWeight: "500" },
 
-  ledgerTable: { width: "100%", borderCollapse: "collapse" },
+  ledgerTable: { width: "100%", borderCollapse: "collapse", minWidth: "450px" },
   lTh: { textAlign: 'left', fontSize: '11px', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', padding: '12px 8px', borderBottom: '1px solid #f1f5f9' },
   lTr: { borderBottom: '1px solid #f8fafc', transition: 'background 0.2s' },
   lTd: { padding: '12px 8px', fontSize: '13px' },
-  tableWrap: { overflowX: 'auto' },
+  tableWrap: { width: "100%", overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '10px' },
 
   emptyState: { textAlign: "center", padding: "48px 32px", color: "#94a3b8" },
   modalBackdrop: { position: "fixed", inset: 0, background: "rgba(15, 23, 42, 0.4)", backdropFilter: "blur(4px)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" },

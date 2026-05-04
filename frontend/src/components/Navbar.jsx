@@ -281,15 +281,16 @@ function Navbar({ className }) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
               onClick={() => setMobileMenuOpen(false)}
-              style={styles.drawerBackdrop}
+              style={{ ...styles.drawerBackdrop, willChange: "opacity" }}
             />
             <motion.div
               initial={{ x: "100%" }}
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              style={styles.drawer}
+              transition={{ type: "tween", duration: 0.25, ease: "easeOut" }}
+              style={{ ...styles.drawer, willChange: "transform" }}
             >
               <div style={{ padding: "32px 24px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "32px" }}>
